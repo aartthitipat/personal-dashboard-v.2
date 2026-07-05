@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Personal Finance Dashboard</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>Finance Dashboard</h1>
+  <input type="month" id="month-picker">
+</header>
+
+<main>
+  <section class="summary-cards" id="summary-cards">
+    <div class="card">
+      <span class="card-label">Spent this month</span>
+      <span class="card-value" id="total-spent">$0.00</span>
+    </div>
+    <div class="card">
+      <span class="card-label">Total budget</span>
+      <span class="card-value" id="total-budget">$0.00</span>
+    </div>
+    <div class="card" id="remaining-card">
+      <span class="card-label">Remaining</span>
+      <span class="card-value" id="total-remaining">$0.00</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Budgets by category</h2>
+    <div id="budget-bars"></div>
+    <form id="budget-form" class="inline-form">
+      <input type="text" id="budget-category" placeholder="Category" required>
+      <input type="number" id="budget-limit" placeholder="Monthly limit" min="0" step="0.01" required>
+      <button type="submit">Set budget</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Add expense</h2>
+    <form id="expense-form" class="inline-form">
+      <input type="date" id="expense-date" required>
+      <input type="text" id="expense-category" placeholder="Category" required list="category-list">
+      <datalist id="category-list"></datalist>
+      <input type="number" id="expense-amount" placeholder="Amount" min="0.01" step="0.01" required>
+      <input type="text" id="expense-note" placeholder="Note (optional)">
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Expenses</h2>
+    <table id="expense-table">
+      <thead>
+        <tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th><th></th></tr>
+      </thead>
+      <tbody id="expense-rows"></tbody>
+    </table>
+  </section>
+</main>
+
+<script src="js/app.js"></script>
+</body>
+</html>

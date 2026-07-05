@@ -14,16 +14,16 @@ Personal budgeting/expense tracker. Stack: plain HTML/CSS/JS frontend calling Su
 
 - Supabase project: `personal-dashboard-remake` (id `qskcbelpaqmnwaxgmnfx`), region us-east-1.
 - `js/config.js` — Supabase URL + publishable key. These are meant to be public (Supabase's security model puts access control in RLS, not in hiding this key) — safe to commit.
-- `js/app.js` — auth (email/password via Supabase Auth) + all data queries/mutations via `sb.from(...)`.
-- `index.html` / `css/style.css` — UI, gated behind a login screen (`#auth-screen` / `#app-screen`).
-- Existing tables this dashboard touches: **`transactions`** (`type` income/expense, `amount`, `vendor`, `category`, `date` as TEXT 'YYYY-MM-DD', `status`, plus `slip_image_path`/`confidence` for a not-yet-built receipt-scan feature — don't touch those two columns without the user asking) and **`budgets`** (added for this module: `category`, `monthly_limit`, unique per `(user_id, category)`).
+- `js/app.js` — no auth; all data queries/mutations go straight through `sb.from(...)`.
+- `index.html` / `css/style.css` — UI, no login screen, loads straight into the dashboard.
+- Existing tables this dashboard touches: **`transactions`** (`type` income/expense, `amount`, `vendor`, `category`, `date` as TEXT 'YYYY-MM-DD', `status`, plus `slip_image_path`/`confidence` for a not-yet-built receipt-scan feature — don't touch those two columns without the user asking) and **`budgets`** (added for this module: `category`, `monthly_limit`, unique on `category`).
 - Other tables in the same Supabase project (`messages`, `events`, `savings_goal`, `subscriptions`) belong to other dashboard modules — don't modify their schema or RLS as a side effect of finance work.
 
 ## Security model
 
-- Both `transactions` and `budgets` have RLS enabled with an `"owner full access"` policy scoped to `authenticated` role + `user_id = auth.uid()`. Every user only ever sees their own rows. New rows get `user_id` automatically via `DEFAULT auth.uid()` — never set it explicitly from the client.
-- Never grant `anon`-role policies (`USING (true)`) on these tables — the anon/publishable key is public by design, and doing so would make financial data world-readable/writable. This was explicitly rejected once already; don't reintroduce it.
-- New Supabase projects default to requiring email confirmation on signup — a new account can't sign in until the confirmation link is clicked.
+- The user explicitly chose no login page, twice, after being told the consequence: `transactions` and `budgets` both have an `"anon full access"` RLS policy (`USING (true) WITH CHECK (true)` for the `anon` role). Anyone who has the page URL/publishable key can read and write this data — there is no per-user isolation.
+- There used to be Supabase Auth + per-`user_id` RLS here; it was deliberately removed at the user's request. Don't silently reintroduce a login screen or user-scoped RLS — if you think this data needs protecting again, ask first, don't just do it.
+- If real protection is ever wanted again without a full login flow, options to raise with the user: an app-level passphrase gate (cosmetic only, RLS would still need to be open underneath), a Postgres function checking a shared secret header, or reinstating Supabase Auth.
 
 ## Rules
 

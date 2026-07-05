@@ -1,12 +1,5 @@
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-const authScreen = document.getElementById('auth-screen');
-const appScreen = document.getElementById('app-screen');
-const authForm = document.getElementById('auth-form');
-const authMessage = document.getElementById('auth-message');
-const signUpBtn = document.getElementById('auth-signup');
-const signOutBtn = document.getElementById('sign-out-btn');
-
 const monthPicker = document.getElementById('month-picker');
 const expenseForm = document.getElementById('expense-form');
 const budgetForm = document.getElementById('budget-form');
@@ -19,39 +12,6 @@ const fmt = (n) => '$' + Number(n).toFixed(2);
 function currentMonth() {
   return monthPicker.value || new Date().toISOString().slice(0, 7);
 }
-
-// --- Auth ---
-
-sb.auth.onAuthStateChange((_event, session) => {
-  showScreen(session);
-  if (session) loadAll().catch((err) => alert(err.message));
-});
-
-function showScreen(session) {
-  authScreen.classList.toggle('hidden', !!session);
-  appScreen.classList.toggle('hidden', !session);
-}
-
-authForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('auth-email').value;
-  const password = document.getElementById('auth-password').value;
-  authMessage.textContent = '';
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) authMessage.textContent = error.message;
-});
-
-signUpBtn.addEventListener('click', async () => {
-  const email = document.getElementById('auth-email').value;
-  const password = document.getElementById('auth-password').value;
-  authMessage.textContent = '';
-  const { error } = await sb.auth.signUp({ email, password });
-  authMessage.textContent = error
-    ? error.message
-    : 'Account created — check your email to confirm, then sign in.';
-});
-
-signOutBtn.addEventListener('click', () => sb.auth.signOut());
 
 // --- Data loading ---
 
@@ -178,7 +138,7 @@ budgetForm.addEventListener('submit', async (e) => {
       category: document.getElementById('budget-category').value,
       monthly_limit: Number(document.getElementById('budget-limit').value),
     },
-    { onConflict: 'user_id,category' }
+    { onConflict: 'category' }
   );
   if (error) return alert(error.message);
   budgetForm.reset();
@@ -200,4 +160,4 @@ monthPicker.addEventListener('change', loadAll);
 
 monthPicker.value = new Date().toISOString().slice(0, 7);
 document.getElementById('expense-date').value = new Date().toISOString().slice(0, 10);
-sb.auth.getSession().then(({ data: { session } }) => showScreen(session));
+loadAll().catch((err) => alert(err.message));

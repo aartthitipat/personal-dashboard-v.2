@@ -8,25 +8,11 @@
 </head>
 <body>
 
-<section id="auth-screen" class="auth-screen hidden">
-  <form id="auth-form" class="auth-form">
-    <h1>Finance Dashboard</h1>
-    <input type="email" id="auth-email" placeholder="Email" required autocomplete="email">
-    <input type="password" id="auth-password" placeholder="Password" required autocomplete="current-password">
-    <div class="auth-actions">
-      <button type="submit" id="auth-signin">Sign in</button>
-      <button type="button" id="auth-signup">Sign up</button>
-    </div>
-    <p id="auth-message" class="auth-message"></p>
-  </form>
-</section>
-
-<div id="app-screen" class="hidden">
+<div id="app-screen">
   <header class="topbar">
     <h1>Finance Dashboard</h1>
     <div class="topbar-right">
       <input type="month" id="month-picker">
-      <button id="sign-out-btn" class="link-btn">Sign out</button>
     </div>
   </header>
 

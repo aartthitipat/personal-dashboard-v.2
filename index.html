@@ -3,67 +3,242 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Personal Finance Dashboard</title>
+<title>Personal Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<div id="app-screen">
-  <header class="topbar">
-    <h1>Finance Dashboard</h1>
-    <div class="topbar-right">
-      <input type="month" id="month-picker">
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="brand" id="brand" data-nav="dashboard">
+      <div class="brand-name">Personal Dashboard</div>
+      <div class="brand-sub">Personal Workspace</div>
     </div>
-  </header>
+    <nav class="nav" id="nav">
+      <button class="nav-item" data-nav="dashboard">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="19" height="19"><path d="M4 4h7v7H4V4zm9 0h7v4h-7V4zm0 7h7v9h-7v-9zM4 14h7v6H4v-6z"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-nav="finances">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><rect x="3" y="6" width="18" height="13" rx="2"/><path stroke-linecap="round" d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4" fill="currentColor" stroke="none"/></svg>
+        Finances
+      </button>
+      <button class="nav-item" data-nav="calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>
+        Calendar
+      </button>
+      <button class="nav-item" data-nav="study">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"/></svg>
+        Study
+      </button>
+    </nav>
+    <div class="sidebar-footer">Personal workspace &mdash; finances, calendar, and study, all in one place.</div>
+  </aside>
 
-  <main>
-    <section class="summary-cards" id="summary-cards">
-      <div class="card">
-        <span class="card-label">Spent this month</span>
-        <span class="card-value" id="total-spent">$0.00</span>
+  <div class="main-col">
+    <header class="topbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><path stroke-linecap="round" d="M21 21l-4.3-4.3"></path></svg>
+        <input type="search" class="search-input" placeholder="Search sessions, tasks, or finances...">
       </div>
-      <div class="card">
-        <span class="card-label">Total budget</span>
-        <span class="card-value" id="total-budget">$0.00</span>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="theme-toggle" aria-label="Toggle dark mode"></button>
+        <button class="icon-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path stroke-linecap="round" d="M13.73 21a2 2 0 01-3.46 0"></path></svg>
+        </button>
+        <button class="icon-btn" aria-label="Profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor"><circle cx="12" cy="8" r="3.5"></circle><path stroke-linecap="round" d="M4.5 20a7.5 7.5 0 0115 0"></path></svg>
+        </button>
       </div>
-      <div class="card" id="remaining-card">
-        <span class="card-label">Remaining</span>
-        <span class="card-value" id="total-remaining">$0.00</span>
-      </div>
-    </section>
+    </header>
 
-    <section class="panel">
-      <h2>Budgets by category</h2>
-      <div id="budget-bars"></div>
-      <form id="budget-form" class="inline-form">
-        <input type="text" id="budget-category" placeholder="Category" required>
-        <input type="number" id="budget-limit" placeholder="Monthly limit" min="0" step="0.01" required>
-        <button type="submit">Set budget</button>
+    <main class="pages">
+
+      <section class="page" id="page-dashboard">
+        <div class="stat-grid" id="dash-stat-grid"></div>
+
+        <div class="section-header">
+          <h2>Study Timetable</h2>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div class="segmented">
+              <span class="disabled">Day</span>
+              <span class="active">Week</span>
+              <span id="dash-go-calendar">Month</span>
+            </div>
+            <div class="stepper">
+              <button id="dash-prev-week" aria-label="Previous week">&lsaquo;</button>
+              <span id="dash-week-label"></span>
+              <button id="dash-next-week" aria-label="Next week">&rsaquo;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="timetable">
+          <div class="timetable-head" id="dash-timetable-head"></div>
+          <div class="timetable-body" id="dash-timetable-body"></div>
+        </div>
+
+        <button class="fab" id="dash-fab" aria-label="Create event">+</button>
+      </section>
+
+      <section class="page" id="page-finances">
+        <div class="finance-header">
+          <div>
+            <h1>Financial Overview</h1>
+            <p>Tracking your budget and personal expenses.</p>
+          </div>
+          <div class="finance-actions">
+            <button class="btn btn-secondary" id="fin-export">&darr; Export</button>
+            <button class="btn btn-primary" id="fin-toggle-add">+ New Transaction</button>
+          </div>
+        </div>
+
+        <form class="txn-form" id="fin-txn-form" style="display:none;">
+          <select class="field" id="fin-txn-type">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+          <input class="field" required type="number" step="0.01" placeholder="Amount" id="fin-txn-amount">
+          <input class="field" required placeholder="Vendor" id="fin-txn-vendor">
+          <select class="field" id="fin-txn-category"></select>
+          <input class="field" required type="date" id="fin-txn-date">
+          <button type="submit" class="btn btn-primary span-2">Save</button>
+        </form>
+
+        <div class="finance-cards-row">
+          <div class="card">
+            <div class="card-top-row"><span class="pill">Current</span></div>
+            <p class="stat-label">Total Balance</p>
+            <p class="stat-value" id="fin-total-balance">$0.00</p>
+          </div>
+
+          <div class="card" id="fin-goal-card">
+            <div id="fin-goal-view">
+              <div class="card-top-row"><button class="pill" style="border:none;cursor:pointer;" id="fin-goal-edit-btn"></button></div>
+              <p class="stat-label">Savings Goal</p>
+              <p class="stat-value"><span id="fin-goal-current"></span><span style="font-size:18px;font-weight:400;color:var(--color-on-surface-variant);"> / <span id="fin-goal-target"></span></span></p>
+              <div class="goal-progress">
+                <div class="progress-track"><div class="progress-fill" id="fin-goal-bar"></div></div>
+                <span class="goal-pct" id="fin-goal-pct"></span>
+              </div>
+            </div>
+            <form class="goal-form" id="fin-goal-form" style="display:none;">
+              <p class="eyebrow" style="margin:0;">Edit Savings Goal</p>
+              <input class="field" placeholder="Goal name" id="fin-goal-label">
+              <div class="goal-form-grid">
+                <input class="field" required type="number" placeholder="Target amount" id="fin-goal-target-input">
+                <input class="field" type="number" placeholder="Saved so far" id="fin-goal-current-input">
+              </div>
+              <div class="goal-form-actions">
+                <button type="submit" class="btn-sm btn-primary-sm">Save</button>
+                <button type="button" class="btn-sm btn-secondary-sm" id="fin-goal-cancel">Cancel</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-top-row between">
+              <h2 class="eyebrow" style="margin:0;">Pending Review</h2>
+              <span class="pill pill-error" id="fin-pending-flag" style="display:none;">Action Required</span>
+            </div>
+            <p class="pending-total"><span id="fin-pending-count"></span> <span id="fin-pending-amount"></span></p>
+            <p class="pending-empty">Transactions land here if you mark them for review.</p>
+          </div>
+        </div>
+
+        <div class="finance-mid-row">
+          <div class="card">
+            <h2 class="eyebrow">Monthly Spending Breakdown</h2>
+            <svg viewBox="0 0 560 260" style="width:100%;height:260px;overflow:visible;" id="fin-chart"></svg>
+            <div class="chart-legend">
+              <span><span class="legend-swatch" style="background:var(--color-success);"></span>Income</span>
+              <span><span class="legend-swatch" style="background:var(--color-error);"></span>Expense</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="eyebrow">Active Subscriptions</h2>
+            <div class="sub-list" id="fin-sub-list"></div>
+            <form class="sub-form" id="fin-sub-form" style="display:none;">
+              <input class="field" required placeholder="Name" id="fin-sub-name" style="grid-column:span 2;">
+              <input class="field" placeholder="Plan (optional)" id="fin-sub-plan">
+              <input class="field" required type="number" step="0.01" placeholder="Amount" id="fin-sub-amount">
+              <button type="submit" class="btn-sm btn-primary-sm" style="grid-column:span 2;">Add Subscription</button>
+            </form>
+            <button class="manage-subs-btn" id="fin-manage-subs">Manage Subscriptions</button>
+          </div>
+        </div>
+
+        <div class="txn-history">
+          <h2 class="eyebrow">Transaction History</h2>
+          <table class="txn-table">
+            <thead>
+              <tr><th>Vendor</th><th>Category</th><th>Date</th><th>Status</th><th class="amount-col">Amount</th><th></th></tr>
+            </thead>
+            <tbody id="fin-txn-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="page" id="page-calendar">
+        <div class="calendar-header">
+          <div class="calendar-header-left">
+            <h1>Calendar</h1>
+            <div class="stepper">
+              <button id="cal-prev-month" aria-label="Previous month">&lsaquo;</button>
+              <span id="cal-month-label"></span>
+              <button id="cal-next-month" aria-label="Next month">&rsaquo;</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" id="cal-create-event">+ Create Event</button>
+        </div>
+
+        <div class="month-grid">
+          <div class="weekday-row" id="cal-weekday-row"></div>
+          <div class="month-cells" id="cal-month-cells"></div>
+        </div>
+      </section>
+
+      <section class="page page-narrow" id="page-study">
+        <div class="study-intro">
+          <h1>Study</h1>
+          <p>Your study team.</p>
+        </div>
+
+        <div class="study-tabs" id="study-tabs"></div>
+        <div id="study-panels"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="event-modal-overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Create Event</h2>
+        <button class="modal-close" id="event-modal-close">&#10005;</button>
+      </div>
+      <form class="event-form" id="event-form">
+        <input class="field span-2" required placeholder="Title" id="event-title">
+        <select class="field span-2" id="event-type">
+          <option value="session">Study Session</option>
+          <option value="exam">Exam</option>
+          <option value="deadline">Deadline</option>
+          <option value="task">Task</option>
+        </select>
+        <input class="field span-2" required type="date" id="event-date">
+        <input class="field" type="time" id="event-start">
+        <input class="field" type="time" id="event-end">
+        <input class="field span-2" placeholder="Location" id="event-location">
+        <button type="submit" class="btn btn-primary span-2 submit-row">Save Event</button>
       </form>
-    </section>
+    </div>
+  </div>
 
-    <section class="panel">
-      <h2>Add expense</h2>
-      <form id="expense-form" class="inline-form">
-        <input type="date" id="expense-date" required>
-        <input type="text" id="expense-category" placeholder="Category" required list="category-list">
-        <datalist id="category-list"></datalist>
-        <input type="number" id="expense-amount" placeholder="Amount" min="0.01" step="0.01" required>
-        <input type="text" id="expense-note" placeholder="Note (optional)">
-        <button type="submit">Add</button>
-      </form>
-    </section>
-
-    <section class="panel">
-      <h2>Expenses</h2>
-      <table id="expense-table">
-        <thead>
-          <tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th><th></th></tr>
-        </thead>
-        <tbody id="expense-rows"></tbody>
-      </table>
-    </section>
-  </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js"
@@ -71,5 +246,9 @@
         crossorigin="anonymous"></script>
 <script src="js/config.js"></script>
 <script src="js/app.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/finances.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/study.js"></script>
 </body>
 </html>

@@ -1,163 +1,135 @@
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-const monthPicker = document.getElementById('month-picker');
-const expenseForm = document.getElementById('expense-form');
-const budgetForm = document.getElementById('budget-form');
-const expenseRows = document.getElementById('expense-rows');
-const budgetBars = document.getElementById('budget-bars');
-const categoryList = document.getElementById('category-list');
+// --- Shared helpers ---
 
-const fmt = (n) => '$' + Number(n).toFixed(2);
+const App = {
+  currency(n) {
+    return (Number(n) || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  },
+  pad(n) {
+    return String(n).padStart(2, '0');
+  },
+  toISO(d) {
+    return `${d.getFullYear()}-${App.pad(d.getMonth() + 1)}-${App.pad(d.getDate())}`;
+  },
+  addDays(d, n) {
+    const r = new Date(d);
+    r.setDate(r.getDate() + n);
+    r.setHours(0, 0, 0, 0);
+    return r;
+  },
+  startOfWeek(d) {
+    const r = new Date(d);
+    r.setHours(0, 0, 0, 0);
+    r.setDate(r.getDate() - r.getDay());
+    return r;
+  },
+  startOfMonthGrid(d) {
+    return App.startOfWeek(new Date(d.getFullYear(), d.getMonth(), 1));
+  },
+  escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  },
+  safeUrl(str) {
+    try {
+      const u = new URL(str, location.href);
+      return /^https?:$/.test(u.protocol) ? u.href : '#';
+    } catch {
+      return '#';
+    }
+  },
+  TYPE_LABEL: { session: 'Study Session', exam: 'Exam', deadline: 'Deadline', task: 'Task' },
+  TYPE_CLASS: { session: 'session', exam: 'exam', deadline: 'deadline', task: 'task' },
+};
 
-function currentMonth() {
-  return monthPicker.value || new Date().toISOString().slice(0, 7);
+// --- Theme ---
+
+const THEME_ICONS = {
+  light: '<svg viewBox="0 0 24 24" fill="currentColor" width="19" height="19"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>',
+  dark: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+};
+
+const themeToggle = document.getElementById('theme-toggle');
+
+function applyTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  themeToggle.innerHTML = dark ? THEME_ICONS.light : THEME_ICONS.dark;
+  localStorage.setItem('dashboard-theme', dark ? 'dark' : 'light');
 }
 
-// --- Data loading ---
+themeToggle.addEventListener('click', () => {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  applyTheme(!isDark);
+});
 
-async function loadAll() {
-  const [expenses, budgets] = await Promise.all([fetchExpenses(), fetchBudgets()]);
-  renderExpenses(expenses);
-  renderBudgets(budgets, expenses);
-  renderCategoryList(budgets);
+applyTheme(localStorage.getItem('dashboard-theme') === 'dark');
+
+// --- Navigation ---
+
+const pages = document.querySelectorAll('.page');
+const navButtons = document.querySelectorAll('.nav-item');
+let currentPage = 'dashboard';
+
+function goPage(name) {
+  currentPage = name;
+  pages.forEach((p) => p.classList.toggle('active', p.id === `page-${name}`));
+  navButtons.forEach((b) => b.classList.toggle('active', b.dataset.nav === name));
+  if (name === 'dashboard') Dashboard.load();
+  if (name === 'finances') Finances.load();
+  if (name === 'calendar') Calendar.load();
+  if (name === 'study') Study.load();
 }
 
-async function fetchExpenses() {
-  const { data, error } = await sb
-    .from('transactions')
-    .select('id, date, category, amount, vendor')
-    .eq('type', 'expense')
-    .like('date', `${currentMonth()}-%`)
-    .order('date', { ascending: false });
-  if (error) throw error;
-  return data;
+document.querySelectorAll('[data-nav]').forEach((el) => {
+  el.addEventListener('click', () => goPage(el.dataset.nav));
+});
+
+document.getElementById('dash-go-calendar').addEventListener('click', () => goPage('calendar'));
+
+// --- Shared "create event" modal (used by Dashboard FAB + Calendar) ---
+
+const eventModalOverlay = document.getElementById('event-modal-overlay');
+const eventForm = document.getElementById('event-form');
+
+function openEventModal(iso) {
+  eventForm.reset();
+  document.getElementById('event-date').value = iso;
+  document.getElementById('event-start').value = '09:00';
+  document.getElementById('event-end').value = '10:00';
+  eventModalOverlay.classList.add('open');
 }
 
-async function fetchBudgets() {
-  const { data, error } = await sb
-    .from('budgets')
-    .select('id, category, monthly_limit')
-    .order('category');
-  if (error) throw error;
-  return data;
+function closeEventModal() {
+  eventModalOverlay.classList.remove('open');
 }
 
-// --- Rendering ---
+document.getElementById('event-modal-close').addEventListener('click', closeEventModal);
+eventModalOverlay.addEventListener('click', (e) => {
+  if (e.target === eventModalOverlay) closeEventModal();
+});
 
-function renderExpenses(expenses) {
-  expenseRows.innerHTML = '';
-  let total = 0;
-  for (const e of expenses) {
-    total += Number(e.amount);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${e.date}</td>
-      <td>${escapeHtml(e.category)}</td>
-      <td>${escapeHtml(e.vendor || '')}</td>
-      <td>${fmt(e.amount)}</td>
-      <td><button class="delete-btn" data-id="${e.id}">delete</button></td>
-    `;
-    expenseRows.appendChild(tr);
-  }
-  document.getElementById('total-spent').textContent = fmt(total);
-  return total;
-}
-
-function renderBudgets(budgets, expenses) {
-  const spentByCategory = {};
-  for (const e of expenses) {
-    spentByCategory[e.category] = (spentByCategory[e.category] || 0) + Number(e.amount);
-  }
-
-  budgetBars.innerHTML = '';
-  let totalBudget = 0;
-  let totalSpent = 0;
-
-  for (const b of budgets) {
-    const spent = spentByCategory[b.category] || 0;
-    totalBudget += Number(b.monthly_limit);
-    totalSpent += spent;
-    const pct = b.monthly_limit > 0 ? Math.min(100, (spent / b.monthly_limit) * 100) : 0;
-    const over = spent > b.monthly_limit;
-
-    const row = document.createElement('div');
-    row.className = 'budget-row';
-    row.innerHTML = `
-      <div class="budget-row-label">
-        <span>${escapeHtml(b.category)}</span>
-        <span>${fmt(spent)} / ${fmt(b.monthly_limit)}</span>
-      </div>
-      <div class="budget-bar-track">
-        <div class="budget-bar-fill ${over ? 'over' : ''}" style="width:${pct}%"></div>
-      </div>
-    `;
-    budgetBars.appendChild(row);
-  }
-
-  document.getElementById('total-budget').textContent = fmt(totalBudget);
-  const remaining = totalBudget - totalSpent;
-  const remainingEl = document.getElementById('total-remaining');
-  remainingEl.textContent = fmt(remaining);
-  remainingEl.classList.toggle('over', remaining < 0);
-}
-
-function renderCategoryList(budgets) {
-  categoryList.innerHTML = budgets
-    .map((b) => `<option value="${escapeHtml(b.category)}">`)
-    .join('');
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// --- Mutations ---
-
-expenseForm.addEventListener('submit', async (e) => {
+eventForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const { error } = await sb.from('transactions').insert({
-    type: 'expense',
-    date: document.getElementById('expense-date').value,
-    category: document.getElementById('expense-category').value,
-    amount: Number(document.getElementById('expense-amount').value),
-    vendor: document.getElementById('expense-note').value || null,
-    status: 'completed',
+  const { error } = await sb.from('events').insert({
+    title: document.getElementById('event-title').value,
+    type: document.getElementById('event-type').value,
+    date: document.getElementById('event-date').value,
+    start_time: document.getElementById('event-start').value || null,
+    end_time: document.getElementById('event-end').value || null,
+    location: document.getElementById('event-location').value || null,
   });
   if (error) return alert(error.message);
-  expenseForm.reset();
-  document.getElementById('expense-date').value = new Date().toISOString().slice(0, 10);
-  await loadAll();
+  closeEventModal();
+  if (currentPage === 'dashboard') Dashboard.load();
+  if (currentPage === 'calendar') Calendar.load();
 });
 
-budgetForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const { error } = await sb.from('budgets').upsert(
-    {
-      category: document.getElementById('budget-category').value,
-      monthly_limit: Number(document.getElementById('budget-limit').value),
-    },
-    { onConflict: 'category' }
-  );
-  if (error) return alert(error.message);
-  budgetForm.reset();
-  await loadAll();
-});
-
-expenseRows.addEventListener('click', async (e) => {
-  if (!e.target.matches('.delete-btn')) return;
-  const id = e.target.dataset.id;
-  if (!confirm('Delete this expense?')) return;
-  const { error } = await sb.from('transactions').delete().eq('id', id);
-  if (error) return alert(error.message);
-  await loadAll();
-});
-
-monthPicker.addEventListener('change', loadAll);
+document.getElementById('dash-fab').addEventListener('click', () => openEventModal(App.toISO(new Date())));
+document.getElementById('cal-create-event').addEventListener('click', () => openEventModal(App.toISO(new Date())));
 
 // --- Init ---
-
-monthPicker.value = new Date().toISOString().slice(0, 7);
-document.getElementById('expense-date').value = new Date().toISOString().slice(0, 10);
-loadAll().catch((err) => alert(err.message));
+// Deferred until DOMContentLoaded so dashboard.js/finances.js/calendar.js/study.js
+// (loaded after this file) have already defined Dashboard/Finances/Calendar/Study.
+document.addEventListener('DOMContentLoaded', () => goPage('dashboard'));

@@ -1,3 +1,12 @@
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const authScreen = document.getElementById('auth-screen');
+const appScreen = document.getElementById('app-screen');
+const authForm = document.getElementById('auth-form');
+const authMessage = document.getElementById('auth-message');
+const signUpBtn = document.getElementById('auth-signup');
+const signOutBtn = document.getElementById('sign-out-btn');
+
 const monthPicker = document.getElementById('month-picker');
 const expenseForm = document.getElementById('expense-form');
 const budgetForm = document.getElementById('budget-form');
@@ -11,24 +20,69 @@ function currentMonth() {
   return monthPicker.value || new Date().toISOString().slice(0, 7);
 }
 
-async function api(path, options = {}) {
-  const res = await fetch(path, options);
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Request failed: ${res.status}`);
-  }
-  return res.json();
+// --- Auth ---
+
+sb.auth.onAuthStateChange((_event, session) => {
+  showScreen(session);
+  if (session) loadAll().catch((err) => alert(err.message));
+});
+
+function showScreen(session) {
+  authScreen.classList.toggle('hidden', !!session);
+  appScreen.classList.toggle('hidden', !session);
 }
 
+authForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  authMessage.textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) authMessage.textContent = error.message;
+});
+
+signUpBtn.addEventListener('click', async () => {
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  authMessage.textContent = '';
+  const { error } = await sb.auth.signUp({ email, password });
+  authMessage.textContent = error
+    ? error.message
+    : 'Account created — check your email to confirm, then sign in.';
+});
+
+signOutBtn.addEventListener('click', () => sb.auth.signOut());
+
+// --- Data loading ---
+
 async function loadAll() {
-  const [expenses, budgets] = await Promise.all([
-    api(`api/expenses.php?month=${currentMonth()}`),
-    api('api/budgets.php'),
-  ]);
+  const [expenses, budgets] = await Promise.all([fetchExpenses(), fetchBudgets()]);
   renderExpenses(expenses);
   renderBudgets(budgets, expenses);
   renderCategoryList(budgets);
 }
+
+async function fetchExpenses() {
+  const { data, error } = await sb
+    .from('transactions')
+    .select('id, date, category, amount, vendor')
+    .eq('type', 'expense')
+    .like('date', `${currentMonth()}-%`)
+    .order('date', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+async function fetchBudgets() {
+  const { data, error } = await sb
+    .from('budgets')
+    .select('id, category, monthly_limit')
+    .order('category');
+  if (error) throw error;
+  return data;
+}
+
+// --- Rendering ---
 
 function renderExpenses(expenses) {
   expenseRows.innerHTML = '';
@@ -37,9 +91,9 @@ function renderExpenses(expenses) {
     total += Number(e.amount);
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${e.expense_date}</td>
+      <td>${e.date}</td>
       <td>${escapeHtml(e.category)}</td>
-      <td>${escapeHtml(e.note || '')}</td>
+      <td>${escapeHtml(e.vendor || '')}</td>
       <td>${fmt(e.amount)}</td>
       <td><button class="delete-btn" data-id="${e.id}">delete</button></td>
     `;
@@ -99,56 +153,51 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// --- Mutations ---
+
 expenseForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const payload = {
-    expense_date: document.getElementById('expense-date').value,
+  const { error } = await sb.from('transactions').insert({
+    type: 'expense',
+    date: document.getElementById('expense-date').value,
     category: document.getElementById('expense-category').value,
-    amount: document.getElementById('expense-amount').value,
-    note: document.getElementById('expense-note').value,
-  };
-  try {
-    await api('api/expenses.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    expenseForm.reset();
-    await loadAll();
-  } catch (err) {
-    alert(err.message);
-  }
+    amount: Number(document.getElementById('expense-amount').value),
+    vendor: document.getElementById('expense-note').value || null,
+    status: 'completed',
+  });
+  if (error) return alert(error.message);
+  expenseForm.reset();
+  document.getElementById('expense-date').value = new Date().toISOString().slice(0, 10);
+  await loadAll();
 });
 
 budgetForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const payload = {
-    category: document.getElementById('budget-category').value,
-    monthly_limit: document.getElementById('budget-limit').value,
-  };
-  try {
-    await api('api/budgets.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    budgetForm.reset();
-    await loadAll();
-  } catch (err) {
-    alert(err.message);
-  }
+  const { error } = await sb.from('budgets').upsert(
+    {
+      category: document.getElementById('budget-category').value,
+      monthly_limit: Number(document.getElementById('budget-limit').value),
+    },
+    { onConflict: 'user_id,category' }
+  );
+  if (error) return alert(error.message);
+  budgetForm.reset();
+  await loadAll();
 });
 
 expenseRows.addEventListener('click', async (e) => {
   if (!e.target.matches('.delete-btn')) return;
   const id = e.target.dataset.id;
   if (!confirm('Delete this expense?')) return;
-  await api(`api/expenses.php?id=${id}`, { method: 'DELETE' });
+  const { error } = await sb.from('transactions').delete().eq('id', id);
+  if (error) return alert(error.message);
   await loadAll();
 });
 
 monthPicker.addEventListener('change', loadAll);
 
+// --- Init ---
+
 monthPicker.value = new Date().toISOString().slice(0, 7);
 document.getElementById('expense-date').value = new Date().toISOString().slice(0, 10);
-loadAll().catch((err) => alert(err.message));
+sb.auth.getSession().then(({ data: { session } }) => showScreen(session));

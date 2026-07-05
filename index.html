@@ -7,60 +7,83 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header class="topbar">
-  <h1>Finance Dashboard</h1>
-  <input type="month" id="month-picker">
-</header>
 
-<main>
-  <section class="summary-cards" id="summary-cards">
-    <div class="card">
-      <span class="card-label">Spent this month</span>
-      <span class="card-value" id="total-spent">$0.00</span>
+<section id="auth-screen" class="auth-screen hidden">
+  <form id="auth-form" class="auth-form">
+    <h1>Finance Dashboard</h1>
+    <input type="email" id="auth-email" placeholder="Email" required autocomplete="email">
+    <input type="password" id="auth-password" placeholder="Password" required autocomplete="current-password">
+    <div class="auth-actions">
+      <button type="submit" id="auth-signin">Sign in</button>
+      <button type="button" id="auth-signup">Sign up</button>
     </div>
-    <div class="card">
-      <span class="card-label">Total budget</span>
-      <span class="card-value" id="total-budget">$0.00</span>
+    <p id="auth-message" class="auth-message"></p>
+  </form>
+</section>
+
+<div id="app-screen" class="hidden">
+  <header class="topbar">
+    <h1>Finance Dashboard</h1>
+    <div class="topbar-right">
+      <input type="month" id="month-picker">
+      <button id="sign-out-btn" class="link-btn">Sign out</button>
     </div>
-    <div class="card" id="remaining-card">
-      <span class="card-label">Remaining</span>
-      <span class="card-value" id="total-remaining">$0.00</span>
-    </div>
-  </section>
+  </header>
 
-  <section class="panel">
-    <h2>Budgets by category</h2>
-    <div id="budget-bars"></div>
-    <form id="budget-form" class="inline-form">
-      <input type="text" id="budget-category" placeholder="Category" required>
-      <input type="number" id="budget-limit" placeholder="Monthly limit" min="0" step="0.01" required>
-      <button type="submit">Set budget</button>
-    </form>
-  </section>
+  <main>
+    <section class="summary-cards" id="summary-cards">
+      <div class="card">
+        <span class="card-label">Spent this month</span>
+        <span class="card-value" id="total-spent">$0.00</span>
+      </div>
+      <div class="card">
+        <span class="card-label">Total budget</span>
+        <span class="card-value" id="total-budget">$0.00</span>
+      </div>
+      <div class="card" id="remaining-card">
+        <span class="card-label">Remaining</span>
+        <span class="card-value" id="total-remaining">$0.00</span>
+      </div>
+    </section>
 
-  <section class="panel">
-    <h2>Add expense</h2>
-    <form id="expense-form" class="inline-form">
-      <input type="date" id="expense-date" required>
-      <input type="text" id="expense-category" placeholder="Category" required list="category-list">
-      <datalist id="category-list"></datalist>
-      <input type="number" id="expense-amount" placeholder="Amount" min="0.01" step="0.01" required>
-      <input type="text" id="expense-note" placeholder="Note (optional)">
-      <button type="submit">Add</button>
-    </form>
-  </section>
+    <section class="panel">
+      <h2>Budgets by category</h2>
+      <div id="budget-bars"></div>
+      <form id="budget-form" class="inline-form">
+        <input type="text" id="budget-category" placeholder="Category" required>
+        <input type="number" id="budget-limit" placeholder="Monthly limit" min="0" step="0.01" required>
+        <button type="submit">Set budget</button>
+      </form>
+    </section>
 
-  <section class="panel">
-    <h2>Expenses</h2>
-    <table id="expense-table">
-      <thead>
-        <tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th><th></th></tr>
-      </thead>
-      <tbody id="expense-rows"></tbody>
-    </table>
-  </section>
-</main>
+    <section class="panel">
+      <h2>Add expense</h2>
+      <form id="expense-form" class="inline-form">
+        <input type="date" id="expense-date" required>
+        <input type="text" id="expense-category" placeholder="Category" required list="category-list">
+        <datalist id="category-list"></datalist>
+        <input type="number" id="expense-amount" placeholder="Amount" min="0.01" step="0.01" required>
+        <input type="text" id="expense-note" placeholder="Note (optional)">
+        <button type="submit">Add</button>
+      </form>
+    </section>
 
+    <section class="panel">
+      <h2>Expenses</h2>
+      <table id="expense-table">
+        <thead>
+          <tr><th>Date</th><th>Category</th><th>Note</th><th>Amount</th><th></th></tr>
+        </thead>
+        <tbody id="expense-rows"></tbody>
+      </table>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js"
+        integrity="sha384-3wY11tldQ5+yWqAvmTN4XtQvnjoTva0cV15O/O/O5NTtp0ivVopSzLOzsVXWZse9"
+        crossorigin="anonymous"></script>
+<script src="js/config.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const App = {
   currency(n) {
-    return (Number(n) || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    return (Number(n) || 0).toLocaleString('th-TH', { style: 'currency', currency: 'THB' });
   },
   pad(n) {
     return String(n).padStart(2, '0');

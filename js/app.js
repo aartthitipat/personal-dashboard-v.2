@@ -42,6 +42,73 @@ const App = {
   },
   TYPE_LABEL: { session: 'Study Session', exam: 'Exam', deadline: 'Deadline', task: 'Task' },
   TYPE_CLASS: { session: 'session', exam: 'exam', deadline: 'deadline', task: 'task' },
+
+  // Expands weekly class_schedule templates into concrete virtual occurrences
+  // for every date in [rangeStartISO, rangeEndISO] (inclusive), skipping dates
+  // covered by an exception. Used by both Dashboard's weekly timetable and the
+  // Calendar month view so recurring classes render the same way everywhere.
+  expandClassSchedule(schedules, exceptions, rangeStartISO, rangeEndISO) {
+    const exceptionKeys = new Set(exceptions.map((e) => `${e.schedule_id}:${e.date}`));
+    const occurrences = [];
+    const [sy, sm, sd] = rangeStartISO.split('-').map(Number);
+    const [ey, em, ed] = rangeEndISO.split('-').map(Number);
+    let cursor = new Date(sy, sm - 1, sd);
+    const end = new Date(ey, em - 1, ed);
+    while (cursor <= end) {
+      const iso = App.toISO(cursor);
+      const dow = cursor.getDay();
+      schedules.forEach((s) => {
+        if (!App.classScheduleAppliesOn(s, dow, iso, exceptionKeys)) return;
+        occurrences.push({
+          id: `sched-${s.id}-${iso}`,
+          schedule_id: s.id,
+          recurring: true,
+          title: s.title,
+          type: 'session',
+          date: iso,
+          start_time: s.start_time,
+          end_time: s.end_time,
+          location: s.location,
+        });
+      });
+      cursor = App.addDays(cursor, 1);
+    }
+    return occurrences;
+  },
+
+  // Shared by Dashboard's weekly timetable and Calendar's month view: clicking
+  // a recurring (virtual) occurrence can't open the normal edit-event modal
+  // since there's no events row behind it — the only thing to do with it is
+  // skip that single date via class_schedule_exceptions.
+  async cancelClassOccurrence(scheduleId, dateISO, title) {
+    if (!confirm(`Cancel "${title}" on ${dateISO}? The rest of the weekly series will keep repeating.`)) return false;
+    const { error } = await sb.from('class_schedule_exceptions').insert({ schedule_id: scheduleId, date: dateISO });
+    if (error) {
+      alert(error.message);
+      return false;
+    }
+    return true;
+  },
+
+  // TODO(user): implement the actual "loop for weekdays" rule.
+  // Return true if `schedule` should produce an occurrence on this date.
+  //   schedule       - a row from class_schedule: { id, day_of_week (0=Sun..6=Sat),
+  //                     start_time, end_time, title, location, valid_from, valid_until }
+  //                     valid_until may be null, meaning "no end date, repeats forever".
+  //   dayOfWeek      - cursor.getDay() for the date being checked (0-6)
+  //   iso            - the date being checked, as 'YYYY-MM-DD'
+  //   exceptionKeys  - a Set of `${schedule_id}:${date}` strings to skip (cancelled occurrences)
+  //
+  // Things to get right: day-of-week match, valid_from/valid_until bounds (text
+  // dates compare correctly with plain string <= / >= since they're YYYY-MM-DD),
+  // and excluding anything in exceptionKeys.
+  classScheduleAppliesOn(schedule, dayOfWeek, iso, exceptionKeys) {
+    if (schedule.day_of_week !== dayOfWeek) return false;
+    if (iso < schedule.valid_from) return false;
+    if (schedule.valid_until && iso > schedule.valid_until) return false;
+    if (exceptionKeys.has(`${schedule.id}:${iso}`)) return false;
+    return true;
+  },
 };
 
 // --- Theme ---

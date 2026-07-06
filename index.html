@@ -86,6 +86,7 @@
         <div class="section-header">
           <h2>Study Timetable</h2>
           <div style="display:flex;align-items:center;gap:16px;">
+            <button class="btn btn-secondary" id="dash-manage-schedule">Manage Class Schedule</button>
             <div class="segmented">
               <span class="disabled">Day</span>
               <span class="active">Week</span>
@@ -259,6 +260,39 @@
         <div class="span-2 submit-row event-form-actions">
           <button type="button" class="btn btn-danger" id="event-delete" style="display:none;">Delete Event</button>
           <button type="submit" class="btn btn-primary">Save Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="schedule-modal-overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Manage Class Schedule</h2>
+        <button class="modal-close" id="schedule-modal-close">&#10005;</button>
+      </div>
+
+      <div class="sub-list" id="schedule-list" style="margin-bottom:20px;"></div>
+
+      <form class="event-form" id="schedule-form">
+        <input class="field span-2" required placeholder="Title" id="schedule-title">
+        <select class="field span-2" id="schedule-day">
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
+          <option value="0">Sunday</option>
+        </select>
+        <input class="field" required type="time" id="schedule-start">
+        <input class="field" type="time" id="schedule-end">
+        <input class="field span-2" placeholder="Location" id="schedule-location">
+        <label class="span-2" style="font-size:12px;color:var(--color-on-surface-variant);">Starts on<input class="field" required type="date" id="schedule-valid-from" style="margin-top:4px;"></label>
+        <label class="span-2" style="font-size:12px;color:var(--color-on-surface-variant);">Ends on (optional, leave blank to repeat indefinitely)<input class="field" type="date" id="schedule-valid-until" style="margin-top:4px;"></label>
+        <div class="span-2 submit-row event-form-actions">
+          <button type="button" class="btn btn-danger" id="schedule-delete" style="display:none;">Delete Series</button>
+          <button type="submit" class="btn btn-primary">Save Class</button>
         </div>
       </form>
     </div>

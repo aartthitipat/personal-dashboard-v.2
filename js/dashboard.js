@@ -62,6 +62,16 @@ const Dashboard = (() => {
     return data;
   }
 
+  async function fetchRecurringOccurrences(weekStart, weekEnd) {
+    const [{ data: schedules, error: schedError }, { data: exceptions, error: excError }] = await Promise.all([
+      sb.from('class_schedule').select('id, title, day_of_week, start_time, end_time, location, valid_from, valid_until'),
+      sb.from('class_schedule_exceptions').select('schedule_id, date'),
+    ]);
+    if (schedError) throw schedError;
+    if (excError) throw excError;
+    return App.expandClassSchedule(schedules, exceptions, App.toISO(weekStart), App.toISO(weekEnd));
+  }
+
   function renderTimetable(weekStart, events) {
     const today = new Date();
     const todayISO = App.toISO(today);
@@ -98,7 +108,7 @@ const Dashboard = (() => {
         const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT, 32);
         const cls = App.TYPE_CLASS[ev.type] || 'session';
         return `
-          <div class="event-block ev-${cls}" data-id="${ev.id}" style="top:${top}px;height:${height}px;">
+          <div class="event-block ev-${cls} ${ev.recurring ? 'recurring' : ''}" data-id="${ev.id}" style="top:${top}px;height:${height}px;">
             <p class="time">${ev.end_time ? `${ev.start_time} - ${ev.end_time}` : ev.start_time}</p>
             <p class="title">${App.escapeHtml(ev.title)}</p>
             ${ev.location ? `<p class="loc">${App.escapeHtml(ev.location)}</p>` : ''}
@@ -122,10 +132,16 @@ const Dashboard = (() => {
     });
 
     body.querySelectorAll('.event-block').forEach((block) => {
-      block.addEventListener('click', (e) => {
+      block.addEventListener('click', async (e) => {
         e.stopPropagation();
         const ev = events.find((x) => String(x.id) === block.dataset.id);
-        if (ev) openEventModal(ev.date, ev);
+        if (!ev) return;
+        if (ev.recurring) {
+          const cancelled = await App.cancelClassOccurrence(ev.schedule_id, ev.date, ev.title);
+          if (cancelled) load();
+        } else {
+          openEventModal(ev.date, ev);
+        }
       });
     });
   }
@@ -134,13 +150,134 @@ const Dashboard = (() => {
     const weekStart = App.startOfWeek(App.addDays(new Date(), weekOffset * 7));
     const weekEnd = App.addDays(weekStart, 6);
     try {
-      const [stats, events] = await Promise.all([fetchStats(), fetchWeekEvents(weekStart, weekEnd)]);
+      const [stats, events, recurring] = await Promise.all([
+        fetchStats(),
+        fetchWeekEvents(weekStart, weekEnd),
+        fetchRecurringOccurrences(weekStart, weekEnd),
+      ]);
       renderStats(stats);
-      renderTimetable(weekStart, events);
+      renderTimetable(weekStart, events.concat(recurring));
     } catch (err) {
       alert(err.message);
     }
   }
+
+  // --- Manage Class Schedule modal ---
+
+  const scheduleModalOverlay = document.getElementById('schedule-modal-overlay');
+  const scheduleForm = document.getElementById('schedule-form');
+  const scheduleDeleteBtn = document.getElementById('schedule-delete');
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  let editingScheduleId = null;
+
+  async function fetchSchedules() {
+    const { data, error } = await sb
+      .from('class_schedule')
+      .select('id, title, day_of_week, start_time, end_time, location, valid_from, valid_until')
+      .order('day_of_week');
+    if (error) throw error;
+    return data;
+  }
+
+  function renderScheduleList(schedules) {
+    const list = document.getElementById('schedule-list');
+    if (!schedules.length) {
+      list.innerHTML = '<p style="font-size:13px;color:var(--color-on-surface-variant);">No recurring classes yet.</p>';
+      return;
+    }
+    list.innerHTML = schedules.map((s) => `
+      <div class="sub-row">
+        <div class="sub-left">
+          <span class="sub-avatar">${App.escapeHtml(DAY_NAMES[s.day_of_week])}</span>
+          <div>
+            <p class="sub-name">${App.escapeHtml(s.title)}</p>
+            <p class="sub-plan">${s.start_time}${s.end_time ? ` - ${s.end_time}` : ''}${s.location ? ` &middot; ${App.escapeHtml(s.location)}` : ''}</p>
+          </div>
+        </div>
+        <div class="sub-right">
+          <button class="btn-link-danger" data-action="edit" data-id="${s.id}" style="color:var(--color-primary);">Edit</button>
+          <button class="btn-link-danger" data-action="delete" data-id="${s.id}">Delete</button>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('[data-action="edit"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const s = schedules.find((x) => String(x.id) === btn.dataset.id);
+        if (s) openScheduleForm(s);
+      });
+    });
+    list.querySelectorAll('[data-action="delete"]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Delete this entire weekly class series?')) return;
+        const { error } = await sb.from('class_schedule').delete().eq('id', btn.dataset.id);
+        if (error) return alert(error.message);
+        await loadScheduleModal();
+        load();
+      });
+    });
+  }
+
+  function openScheduleForm(s) {
+    editingScheduleId = s ? s.id : null;
+    scheduleDeleteBtn.style.display = s ? '' : 'none';
+    document.getElementById('schedule-title').value = s ? s.title : '';
+    document.getElementById('schedule-day').value = s ? s.day_of_week : '1';
+    document.getElementById('schedule-start').value = s ? s.start_time : '09:00';
+    document.getElementById('schedule-end').value = s ? (s.end_time || '') : '10:00';
+    document.getElementById('schedule-location').value = s ? (s.location || '') : '';
+    document.getElementById('schedule-valid-from').value = s ? s.valid_from : App.toISO(new Date());
+    document.getElementById('schedule-valid-until').value = s ? (s.valid_until || '') : '';
+  }
+
+  async function loadScheduleModal() {
+    try {
+      renderScheduleList(await fetchSchedules());
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  document.getElementById('dash-manage-schedule').addEventListener('click', () => {
+    openScheduleForm(null);
+    scheduleModalOverlay.classList.add('open');
+    loadScheduleModal();
+  });
+  document.getElementById('schedule-modal-close').addEventListener('click', () => {
+    scheduleModalOverlay.classList.remove('open');
+  });
+  scheduleModalOverlay.addEventListener('click', (e) => {
+    if (e.target === scheduleModalOverlay) scheduleModalOverlay.classList.remove('open');
+  });
+
+  scheduleForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      title: document.getElementById('schedule-title').value,
+      day_of_week: Number(document.getElementById('schedule-day').value),
+      start_time: document.getElementById('schedule-start').value,
+      end_time: document.getElementById('schedule-end').value || null,
+      location: document.getElementById('schedule-location').value || null,
+      valid_from: document.getElementById('schedule-valid-from').value,
+      valid_until: document.getElementById('schedule-valid-until').value || null,
+    };
+    const { error } = editingScheduleId
+      ? await sb.from('class_schedule').update(payload).eq('id', editingScheduleId)
+      : await sb.from('class_schedule').insert(payload);
+    if (error) return alert(error.message);
+    openScheduleForm(null);
+    await loadScheduleModal();
+    load();
+  });
+
+  scheduleDeleteBtn.addEventListener('click', async () => {
+    if (!editingScheduleId || !confirm('Delete this entire weekly class series?')) return;
+    const { error } = await sb.from('class_schedule').delete().eq('id', editingScheduleId);
+    if (error) return alert(error.message);
+    openScheduleForm(null);
+    await loadScheduleModal();
+    load();
+  });
 
   return { load };
 })();

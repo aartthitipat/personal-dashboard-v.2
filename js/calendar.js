@@ -27,6 +27,16 @@ const Calendar = (() => {
     return data;
   }
 
+  async function fetchRecurringOccurrences(gridStart, gridEnd) {
+    const [{ data: schedules, error: schedError }, { data: exceptions, error: excError }] = await Promise.all([
+      sb.from('class_schedule').select('id, title, day_of_week, start_time, end_time, location, valid_from, valid_until'),
+      sb.from('class_schedule_exceptions').select('schedule_id, date'),
+    ]);
+    if (schedError) throw schedError;
+    if (excError) throw excError;
+    return App.expandClassSchedule(schedules, exceptions, App.toISO(gridStart), App.toISO(gridEnd));
+  }
+
   function render(monthDate, events) {
     const today = new Date();
     const todayISO = App.toISO(today);
@@ -42,7 +52,7 @@ const Calendar = (() => {
       const dayEvents = events.filter((e) => e.date === iso);
       const pills = dayEvents.map((ev) => {
         const cls = App.TYPE_CLASS[ev.type] || 'session';
-        return `<span class="event-pill ${cls}" data-id="${ev.id}" title="${App.escapeHtml(ev.title)}">${App.escapeHtml(ev.title)}</span>`;
+        return `<span class="event-pill ${cls} ${ev.recurring ? 'recurring' : ''}" data-id="${ev.id}" title="${App.escapeHtml(ev.title)}">${App.escapeHtml(ev.title)}</span>`;
       }).join('');
       return `
         <div class="month-cell ${isToday ? 'today' : ''} ${inMonth ? '' : 'out-of-month'}" data-date="${iso}">
@@ -57,10 +67,16 @@ const Calendar = (() => {
     });
 
     cellsEl.querySelectorAll('.event-pill').forEach((pill) => {
-      pill.addEventListener('click', (e) => {
+      pill.addEventListener('click', async (e) => {
         e.stopPropagation();
         const ev = events.find((x) => String(x.id) === pill.dataset.id);
-        if (ev) openEventModal(ev.date, ev);
+        if (!ev) return;
+        if (ev.recurring) {
+          const cancelled = await App.cancelClassOccurrence(ev.schedule_id, ev.date, ev.title);
+          if (cancelled) load();
+        } else {
+          openEventModal(ev.date, ev);
+        }
       });
     });
   }
@@ -70,8 +86,11 @@ const Calendar = (() => {
     const gridStart = App.startOfMonthGrid(monthDate);
     const gridEnd = App.addDays(gridStart, 41);
     try {
-      const events = await fetchEvents(gridStart, gridEnd);
-      render(monthDate, events);
+      const [events, recurring] = await Promise.all([
+        fetchEvents(gridStart, gridEnd),
+        fetchRecurringOccurrences(gridStart, gridEnd),
+      ]);
+      render(monthDate, events.concat(recurring));
     } catch (err) {
       alert(err.message);
     }

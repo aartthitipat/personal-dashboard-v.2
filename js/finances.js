@@ -114,6 +114,12 @@ const Finances = (() => {
     await load();
   }
 
+  async function confirmPending(id) {
+    const { error } = await sb.from('transactions').update({ status: 'completed' }).eq('id', id);
+    if (error) return alert(error.message);
+    await load();
+  }
+
   function renderGoal() {
     goalView.style.display = editingGoal ? 'none' : 'block';
     goalForm.style.display = editingGoal ? 'flex' : 'none';
@@ -132,6 +138,30 @@ const Finances = (() => {
     document.getElementById('fin-pending-flag').style.display = pending.length ? 'inline-block' : 'none';
     document.getElementById('fin-pending-count').textContent = `${pending.length} Items`;
     document.getElementById('fin-pending-amount').textContent = App.currency(total);
+
+    const list = document.getElementById('fin-pending-list');
+    if (!pending.length) {
+      list.innerHTML = '<p class="pending-empty">Transactions land here if you mark them for review.</p>';
+      return;
+    }
+    list.innerHTML = pending.map((t) => `
+      <div class="pending-row">
+        <div>
+          <p class="pending-row-name">${App.escapeHtml(t.vendor)}</p>
+          <p class="pending-row-meta">${App.escapeHtml(t.type)} &middot; ${App.currency(t.amount)}</p>
+        </div>
+        <div class="pending-row-actions">
+          <button class="btn-confirm" data-id="${t.id}">Confirm</button>
+          <button class="btn-decline" data-id="${t.id}">Delete</button>
+        </div>
+      </div>
+    `).join('');
+    list.querySelectorAll('.btn-confirm').forEach((btn) => {
+      btn.addEventListener('click', () => confirmPending(btn.dataset.id));
+    });
+    list.querySelectorAll('.btn-decline').forEach((btn) => {
+      btn.addEventListener('click', () => deleteTxn(btn.dataset.id));
+    });
   }
 
   function renderChart() {

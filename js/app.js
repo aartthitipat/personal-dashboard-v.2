@@ -66,6 +66,29 @@ themeToggle.addEventListener('click', () => {
 
 applyTheme(localStorage.getItem('dashboard-theme') === 'dark');
 
+// --- Sidebar collapse ---
+
+const CHEVRON_ICONS = {
+  left: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>',
+  right: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>',
+};
+
+const sidebar = document.getElementById('sidebar');
+const sidebarCollapseToggle = document.getElementById('sidebar-collapse-toggle');
+
+function applySidebarCollapsed(collapsed) {
+  sidebar.classList.toggle('collapsed', collapsed);
+  sidebarCollapseToggle.innerHTML = collapsed ? CHEVRON_ICONS.right : CHEVRON_ICONS.left;
+  sidebarCollapseToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  localStorage.setItem('dashboard-sidebar-collapsed', collapsed ? '1' : '0');
+}
+
+sidebarCollapseToggle.addEventListener('click', () => {
+  applySidebarCollapsed(!sidebar.classList.contains('collapsed'));
+});
+
+applySidebarCollapsed(localStorage.getItem('dashboard-sidebar-collapsed') === '1');
+
 // --- Navigation ---
 
 const pages = document.querySelectorAll('.page');

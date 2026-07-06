@@ -5,13 +5,6 @@ const Study = (() => {
     { key: 'teacher', name: 'tad', role: 'Teacher', tagline: 'Explains anything simply — no jargon, straight to the point.' },
   ];
 
-  // Placeholder canned replies until a real LLM integration is wired up.
-  const CANNED_REPLIES = {
-    researcher: { content: "Good question — here's what I found searching for that just now, with sources below.", sources: [{ url: 'https://scholar.google.com', title: 'Related scholarly sources' }] },
-    debater: { content: 'Interesting angle, but consider the counter-argument: the strongest version of your claim still has to answer for the tradeoffs it creates elsewhere.', sources: null },
-    teacher: { content: "Let's break that down simply: think of it as a small piece you already understand, then build one step at a time from there.", sources: null },
-  };
-
   let activeKey = 'researcher';
   let messagesByMember = {};
   let sending = {};
@@ -101,18 +94,29 @@ const Study = (() => {
     sending[key] = true;
     await reload(key);
 
-    setTimeout(async () => {
-      const reply = CANNED_REPLIES[key];
-      const { error: replyErr } = await sb.from('messages').insert({
-        member: key,
-        role: 'assistant',
-        content: reply.content,
-        sources: reply.sources ? JSON.stringify(reply.sources) : null,
-      });
-      sending[key] = false;
-      if (replyErr) return alert(replyErr.message);
+    // messagesByMember[key] already includes the user message just inserted above
+    // (reload() re-fetched it); drop it here since it's sent separately as `message`.
+    const history = (messagesByMember[key] || []).slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
+
+    const { data, error: callErr } = await sb.functions.invoke('study-chat', {
+      body: { member: key, message: text, history },
+    });
+
+    sending[key] = false;
+
+    if (callErr) {
       await reload(key);
-    }, 900);
+      return alert(callErr.message);
+    }
+
+    const { error: replyErr } = await sb.from('messages').insert({
+      member: key,
+      role: 'assistant',
+      content: data.content,
+      sources: data.sources ? JSON.stringify(data.sources) : null,
+    });
+    if (replyErr) return alert(replyErr.message);
+    await reload(key);
   }
 
   async function reload(key) {

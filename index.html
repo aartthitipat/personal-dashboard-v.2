@@ -13,27 +13,30 @@
 
 <div class="app-shell">
 
-  <aside class="sidebar">
-    <div class="brand" id="brand" data-nav="dashboard">
-      <div class="brand-name">Personal Dashboard</div>
-      <div class="brand-sub">Personal Workspace</div>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand-row">
+      <div class="brand" id="brand" data-nav="dashboard">
+        <div class="brand-name">Personal Dashboard</div>
+        <div class="brand-sub">Personal Workspace</div>
+      </div>
+      <button class="collapse-btn" id="sidebar-collapse-toggle" aria-label="Collapse sidebar"></button>
     </div>
     <nav class="nav" id="nav">
-      <button class="nav-item" data-nav="dashboard">
+      <button class="nav-item" data-nav="dashboard" title="Dashboard">
         <svg viewBox="0 0 24 24" fill="currentColor" width="19" height="19"><path d="M4 4h7v7H4V4zm9 0h7v4h-7V4zm0 7h7v9h-7v-9zM4 14h7v6H4v-6z"/></svg>
-        Dashboard
+        <span class="nav-label">Dashboard</span>
       </button>
-      <button class="nav-item" data-nav="finances">
+      <button class="nav-item" data-nav="finances" title="Finances">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><rect x="3" y="6" width="18" height="13" rx="2"/><path stroke-linecap="round" d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4" fill="currentColor" stroke="none"/></svg>
-        Finances
+        <span class="nav-label">Finances</span>
       </button>
-      <button class="nav-item" data-nav="calendar">
+      <button class="nav-item" data-nav="calendar" title="Calendar">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>
-        Calendar
+        <span class="nav-label">Calendar</span>
       </button>
-      <button class="nav-item" data-nav="study">
+      <button class="nav-item" data-nav="study" title="Study">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"/></svg>
-        Study
+        <span class="nav-label">Study</span>
       </button>
     </nav>
     <div class="sidebar-footer">Personal workspace &mdash; finances, calendar, and study, all in one place.</div>
@@ -146,7 +149,7 @@
               <span class="pill pill-error" id="fin-pending-flag" style="display:none;">Action Required</span>
             </div>
             <p class="pending-total"><span id="fin-pending-count"></span> <span id="fin-pending-amount"></span></p>
-            <p class="pending-empty">Transactions land here if you mark them for review.</p>
+            <div class="pending-list" id="fin-pending-list"></div>
           </div>
         </div>
 

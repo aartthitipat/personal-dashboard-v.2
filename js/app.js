@@ -115,17 +115,33 @@ document.getElementById('dash-go-calendar').addEventListener('click', () => goPa
 
 const eventModalOverlay = document.getElementById('event-modal-overlay');
 const eventForm = document.getElementById('event-form');
+const eventModalTitle = document.getElementById('event-modal-title');
+const eventDeleteBtn = document.getElementById('event-delete');
 
-function openEventModal(iso) {
+let editingEventId = null;
+
+function openEventModal(iso, event) {
   eventForm.reset();
-  document.getElementById('event-date').value = iso;
-  document.getElementById('event-start').value = '09:00';
-  document.getElementById('event-end').value = '10:00';
+  editingEventId = event ? event.id : null;
+  eventModalTitle.textContent = event ? 'Edit Event' : 'Create Event';
+  eventDeleteBtn.style.display = event ? '' : 'none';
+  document.getElementById('event-title').value = event ? event.title : '';
+  document.getElementById('event-type').value = event ? event.type : 'session';
+  document.getElementById('event-date').value = event ? event.date : iso;
+  document.getElementById('event-start').value = event ? (event.start_time || '') : '09:00';
+  document.getElementById('event-end').value = event ? (event.end_time || '') : '10:00';
+  document.getElementById('event-location').value = event ? (event.location || '') : '';
   eventModalOverlay.classList.add('open');
 }
 
 function closeEventModal() {
   eventModalOverlay.classList.remove('open');
+  editingEventId = null;
+}
+
+function refreshCurrentPage() {
+  if (currentPage === 'dashboard') Dashboard.load();
+  if (currentPage === 'calendar') Calendar.load();
 }
 
 document.getElementById('event-modal-close').addEventListener('click', closeEventModal);
@@ -135,22 +151,92 @@ eventModalOverlay.addEventListener('click', (e) => {
 
 eventForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const { error } = await sb.from('events').insert({
+  const payload = {
     title: document.getElementById('event-title').value,
     type: document.getElementById('event-type').value,
     date: document.getElementById('event-date').value,
     start_time: document.getElementById('event-start').value || null,
     end_time: document.getElementById('event-end').value || null,
     location: document.getElementById('event-location').value || null,
-  });
+  };
+  const { error } = editingEventId
+    ? await sb.from('events').update(payload).eq('id', editingEventId)
+    : await sb.from('events').insert(payload);
   if (error) return alert(error.message);
   closeEventModal();
-  if (currentPage === 'dashboard') Dashboard.load();
-  if (currentPage === 'calendar') Calendar.load();
+  refreshCurrentPage();
+});
+
+eventDeleteBtn.addEventListener('click', async () => {
+  if (!editingEventId) return;
+  if (!confirm('Delete this event?')) return;
+  const { error } = await sb.from('events').delete().eq('id', editingEventId);
+  if (error) return alert(error.message);
+  closeEventModal();
+  refreshCurrentPage();
 });
 
 document.getElementById('dash-fab').addEventListener('click', () => openEventModal(App.toISO(new Date())));
 document.getElementById('cal-create-event').addEventListener('click', () => openEventModal(App.toISO(new Date())));
+
+// --- Class-start notifications (Study Session events, 5 minutes before start) ---
+
+const ClassNotifier = (() => {
+  const LEAD_MINUTES = 5;
+  const POLL_MS = 20000;
+  const notifiedIds = new Set();
+
+  function minutesOf(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  async function fetchTodaysSessions(todayISO) {
+    const { data, error } = await sb
+      .from('events')
+      .select('id, title, location, start_time')
+      .eq('date', todayISO)
+      .eq('type', 'session')
+      .not('start_time', 'is', null);
+    if (error) throw error;
+    return data;
+  }
+
+  async function tick() {
+    if (Notification.permission !== 'granted') return;
+    const now = new Date();
+    const todayISO = App.toISO(now);
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    let sessions;
+    try {
+      sessions = await fetchTodaysSessions(todayISO);
+    } catch {
+      return;
+    }
+    for (const ev of sessions) {
+      const key = `${todayISO}:${ev.id}`;
+      if (notifiedIds.has(key)) continue;
+      const minutesUntilStart = minutesOf(ev.start_time) - nowMinutes;
+      if (minutesUntilStart <= LEAD_MINUTES && minutesUntilStart >= 0) {
+        notifiedIds.add(key);
+        new Notification(`${ev.title} starts in ${LEAD_MINUTES} min`, {
+          body: ev.location ? `Location: ${ev.location}` : undefined,
+        });
+      }
+    }
+  }
+
+  function init() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') Notification.requestPermission();
+    tick();
+    setInterval(tick, POLL_MS);
+  }
+
+  return { init };
+})();
+
+ClassNotifier.init();
 
 // --- Init ---
 // Deferred until DOMContentLoaded so dashboard.js/finances.js/calendar.js/study.js

@@ -272,6 +272,7 @@ a { color: var(--color-primary); }
 }
 .btn-primary { background: var(--color-primary); color: var(--color-on-primary); }
 .btn-secondary { background: var(--color-surface-container-lowest); color: var(--color-on-surface); border: 1px solid var(--color-outline-variant); }
+.btn-danger { background: var(--color-error-container); color: var(--color-on-error-container); }
 .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 0.75rem; border: none; cursor: pointer; }
 .btn-primary-sm { background: var(--color-primary); color: var(--color-on-primary); }
 .btn-secondary-sm { background: none; color: var(--color-on-surface-variant); border: 1px solid var(--color-outline-variant); }
@@ -483,6 +484,8 @@ a { color: var(--color-primary); }
 .event-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .event-form .span-2 { grid-column: span 2; }
 .event-form .submit-row { margin-top: 8px; }
+.event-form-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.event-form-actions .btn-primary { margin-left: auto; }
 
 @media (max-width: 900px) {
   .sidebar { display: none; }

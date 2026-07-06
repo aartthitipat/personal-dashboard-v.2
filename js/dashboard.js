@@ -98,7 +98,7 @@ const Dashboard = (() => {
         const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT, 32);
         const cls = App.TYPE_CLASS[ev.type] || 'session';
         return `
-          <div class="event-block ev-${cls}" style="top:${top}px;height:${height}px;">
+          <div class="event-block ev-${cls}" data-id="${ev.id}" style="top:${top}px;height:${height}px;">
             <p class="time">${ev.end_time ? `${ev.start_time} - ${ev.end_time}` : ev.start_time}</p>
             <p class="title">${App.escapeHtml(ev.title)}</p>
             ${ev.location ? `<p class="loc">${App.escapeHtml(ev.location)}</p>` : ''}
@@ -119,6 +119,14 @@ const Dashboard = (() => {
 
     body.querySelectorAll('.timetable-col').forEach((col) => {
       col.addEventListener('click', () => openEventModal(col.dataset.date));
+    });
+
+    body.querySelectorAll('.event-block').forEach((block) => {
+      block.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const ev = events.find((x) => String(x.id) === block.dataset.id);
+        if (ev) openEventModal(ev.date, ev);
+      });
     });
   }
 

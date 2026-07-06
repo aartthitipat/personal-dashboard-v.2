@@ -20,7 +20,7 @@ const Calendar = (() => {
   async function fetchEvents(gridStart, gridEnd) {
     const { data, error } = await sb
       .from('events')
-      .select('id, title, type, date')
+      .select('id, title, type, date, start_time, end_time, location')
       .gte('date', App.toISO(gridStart))
       .lte('date', App.toISO(gridEnd));
     if (error) throw error;
@@ -42,7 +42,7 @@ const Calendar = (() => {
       const dayEvents = events.filter((e) => e.date === iso);
       const pills = dayEvents.map((ev) => {
         const cls = App.TYPE_CLASS[ev.type] || 'session';
-        return `<span class="event-pill ${cls}" title="${App.escapeHtml(ev.title)}">${App.escapeHtml(ev.title)}</span>`;
+        return `<span class="event-pill ${cls}" data-id="${ev.id}" title="${App.escapeHtml(ev.title)}">${App.escapeHtml(ev.title)}</span>`;
       }).join('');
       return `
         <div class="month-cell ${isToday ? 'today' : ''} ${inMonth ? '' : 'out-of-month'}" data-date="${iso}">
@@ -54,6 +54,14 @@ const Calendar = (() => {
 
     cellsEl.querySelectorAll('.month-cell').forEach((cell) => {
       cell.addEventListener('click', () => openEventModal(cell.dataset.date));
+    });
+
+    cellsEl.querySelectorAll('.event-pill').forEach((pill) => {
+      pill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const ev = events.find((x) => String(x.id) === pill.dataset.id);
+        if (ev) openEventModal(ev.date, ev);
+      });
     });
   }
 

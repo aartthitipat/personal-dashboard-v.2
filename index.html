@@ -85,17 +85,19 @@
 
         <div class="section-header">
           <h2>Study Timetable</h2>
-          <div style="display:flex;align-items:center;gap:16px;">
+          <div class="timetable-controls">
             <button class="btn btn-secondary" id="dash-manage-schedule">Manage Class Schedule</button>
-            <div class="segmented" role="group" aria-label="Timetable view">
-              <button type="button" class="disabled" disabled>Day</button>
-              <button type="button" class="active" disabled>Week</button>
-              <button type="button" id="dash-go-calendar">Month</button>
-            </div>
-            <div class="stepper">
-              <button id="dash-prev-week" aria-label="Previous week">&lsaquo;</button>
-              <span id="dash-week-label"></span>
-              <button id="dash-next-week" aria-label="Next week">&rsaquo;</button>
+            <div class="tt-view-row">
+              <div class="segmented" role="group" aria-label="Timetable view">
+                <button type="button" id="dash-view-day" class="disabled" disabled>Day</button>
+                <button type="button" id="dash-view-week" class="active" disabled>Week</button>
+                <button type="button" id="dash-go-calendar">Month</button>
+              </div>
+              <div class="stepper">
+                <button id="dash-prev-week" aria-label="Previous week">&lsaquo;</button>
+                <span id="dash-week-label"></span>
+                <button id="dash-next-week" aria-label="Next week">&rsaquo;</button>
+              </div>
             </div>
           </div>
         </div>

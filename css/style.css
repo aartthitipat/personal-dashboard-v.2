@@ -368,6 +368,9 @@ button.pill:hover { filter: brightness(0.95); }
 .section-header { margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
 .section-header h2 { margin: 0; font-family: inherit; font-size: 24px; font-weight: 600; color: var(--color-on-surface); }
 
+.timetable-controls { display: flex; align-items: center; gap: 16px; }
+.tt-view-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
 .segmented { display: flex; border-radius: 0.75rem; border: 1px solid var(--color-outline-variant); background: var(--color-surface); padding: 2px; font-size: 14px; }
 .segmented button { border: none; background: none; font: inherit; border-radius: 0.5rem; padding: 6px 12px; color: var(--color-on-surface-variant); cursor: pointer; transition: background 0.15s ease-out; }
 .segmented button:disabled:not(.active) { cursor: not-allowed; opacity: 0.5; }
@@ -378,6 +381,7 @@ button.pill:hover { filter: brightness(0.95); }
 .stepper button { border: none; background: none; cursor: pointer; padding: 4px 6px; border-radius: 0.5rem; color: var(--color-on-surface-variant); font-size: 16px; transition: background 0.15s ease-out, color 0.15s ease-out; }
 .stepper button:hover { background: var(--color-surface-container); color: var(--color-on-surface); }
 .stepper span { font-size: 14px; font-weight: 600; color: var(--color-on-surface); white-space: nowrap; }
+.stepper span.today { color: var(--color-primary); }
 
 .timetable { position: relative; overflow-x: auto; border-radius: 1rem; border: 1px solid var(--color-outline-variant); background: var(--color-surface-container-lowest); }
 .timetable-head { display: grid; min-width: 760px; grid-template-columns: 56px repeat(7, 1fr); border-bottom: 1px solid var(--color-outline-variant); }
@@ -409,6 +413,21 @@ button.pill:hover { filter: brightness(0.95); }
 .ev-task { --ev-accent: var(--color-secondary); background: color-mix(in srgb, var(--color-secondary-container) 30%, transparent); }
 .event-block.recurring { outline: 1px dashed var(--ev-accent, var(--color-outline)); outline-offset: -1px; }
 .event-pill.recurring { box-shadow: inset 0 0 0 1px var(--color-on-primary); }
+
+/* Single-day agenda list — replaces the 7-column grid below the mobile
+   breakpoint. Reuses the .ev-session/.ev-exam/.ev-task tint + accent-dot
+   language above instead of inventing a second category-color system. */
+.agenda-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 56px 16px; text-align: center; color: var(--color-on-surface-variant); }
+.agenda-empty svg { color: var(--color-outline); }
+.agenda-empty p { margin: 0; font-size: 14px; }
+.agenda-item { border-radius: 0.75rem; padding: 12px 14px; cursor: pointer; transition: filter 0.15s ease-out; }
+.agenda-item:hover { filter: brightness(0.96); }
+.agenda-item p { margin: 0; }
+.agenda-time { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--color-on-surface); }
+.agenda-time::before { content: ""; flex-shrink: 0; width: 6px; height: 6px; border-radius: 999px; background: var(--ev-accent, currentColor); }
+.agenda-title { margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--color-on-surface); }
+.agenda-loc { margin-top: 2px; font-size: 12px; color: var(--color-on-surface-variant); }
+.agenda-item.recurring { outline: 1px dashed var(--ev-accent, var(--color-outline)); outline-offset: -1px; }
 
 /* ---- Finances ---- */
 
@@ -572,4 +591,17 @@ button.pill:hover { filter: brightness(0.95); }
   .pages { padding-bottom: 72px; }
   .fab { bottom: calc(72px + 16px); }
   .stat-grid, .finance-cards-row, .finance-mid-row, .txn-form, .study-tabs { grid-template-columns: 1fr; }
+
+  .timetable-controls { flex-direction: column; align-items: stretch; gap: 12px; }
+  .timetable-controls .tt-view-row { order: -1; justify-content: space-between; }
+  #dash-manage-schedule { width: 100%; }
+
+  .timetable-head { display: none; }
+  .timetable-body.agenda-mode {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 10px;
+    padding: 16px 12px 96px;
+  }
 }

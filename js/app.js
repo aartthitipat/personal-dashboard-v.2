@@ -259,7 +259,7 @@ eventDeleteBtn.addEventListener('click', async () => {
   refreshCurrentPage();
 });
 
-document.getElementById('dash-fab').addEventListener('click', () => openEventModal(App.toISO(new Date())));
+document.getElementById('dash-fab').addEventListener('click', () => openEventModal(Dashboard.fabTargetDate()));
 document.getElementById('cal-create-event').addEventListener('click', () => openEventModal(App.toISO(new Date())));
 
 // --- Class-start notifications (Study Session events, 5 minutes before start) ---

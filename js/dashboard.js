@@ -3,21 +3,30 @@ const Dashboard = (() => {
   const END_HOUR = 21;
   const HOUR_HEIGHT = 64;
 
-  let weekOffset = 0;
+  let selectedDate = new Date();
+  selectedDate.setHours(0, 0, 0, 0);
+
+  const mobileQuery = window.matchMedia('(max-width: 900px)');
+  const isMobile = () => mobileQuery.matches;
 
   const statGrid = document.getElementById('dash-stat-grid');
   const weekLabel = document.getElementById('dash-week-label');
   const head = document.getElementById('dash-timetable-head');
   const body = document.getElementById('dash-timetable-body');
+  const viewDayBtn = document.getElementById('dash-view-day');
+  const viewWeekBtn = document.getElementById('dash-view-week');
+  const prevBtn = document.getElementById('dash-prev-week');
+  const nextBtn = document.getElementById('dash-next-week');
 
-  document.getElementById('dash-prev-week').addEventListener('click', () => {
-    weekOffset -= 1;
+  prevBtn.addEventListener('click', () => {
+    selectedDate = App.addDays(selectedDate, isMobile() ? -1 : -7);
     load();
   });
-  document.getElementById('dash-next-week').addEventListener('click', () => {
-    weekOffset += 1;
+  nextBtn.addEventListener('click', () => {
+    selectedDate = App.addDays(selectedDate, isMobile() ? 1 : 7);
     load();
   });
+  mobileQuery.addEventListener('change', load);
 
   function minutesOf(hhmm) {
     const [h, m] = hhmm.split(':').map(Number);
@@ -72,7 +81,73 @@ const Dashboard = (() => {
     return App.expandClassSchedule(schedules, exceptions, App.toISO(weekStart), App.toISO(weekEnd));
   }
 
+  // --- Mobile: single-day agenda list ---
+
+  function renderDayAgenda(date, events) {
+    const iso = App.toISO(date);
+    const todayISO = App.toISO(new Date());
+
+    viewDayBtn.classList.add('active');
+    viewWeekBtn.classList.remove('active');
+    prevBtn.setAttribute('aria-label', 'Previous day');
+    nextBtn.setAttribute('aria-label', 'Next day');
+    weekLabel.textContent = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    weekLabel.classList.toggle('today', iso === todayISO);
+
+    head.innerHTML = '';
+    body.classList.add('agenda-mode');
+
+    const dayEvents = events
+      .filter((e) => e.date === iso)
+      .sort((a, b) => minutesOf(a.start_time) - minutesOf(b.start_time));
+
+    if (!dayEvents.length) {
+      body.innerHTML = `
+        <div class="agenda-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke="currentColor" width="28" height="28"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 15l2 2 4-4"/></svg>
+          <p>No classes today</p>
+        </div>
+      `;
+      return;
+    }
+
+    body.innerHTML = dayEvents.map((ev) => {
+      const cls = App.TYPE_CLASS[ev.type] || 'session';
+      const timeLabel = ev.end_time ? `${ev.start_time} - ${ev.end_time}` : ev.start_time;
+      return `
+        <div class="agenda-item ev-${cls} ${ev.recurring ? 'recurring' : ''}" data-id="${ev.id}" aria-label="${App.escapeHtml(ev.title)}, ${timeLabel}${ev.recurring ? ', recurring' : ''}">
+          <p class="agenda-time">${timeLabel}</p>
+          <p class="agenda-title">${App.escapeHtml(ev.title)}</p>
+          ${ev.location ? `<p class="agenda-loc">${App.escapeHtml(ev.location)}</p>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    body.querySelectorAll('.agenda-item').forEach((el) => {
+      const ev = dayEvents.find((x) => String(x.id) === el.dataset.id);
+      if (!ev) return;
+      el.addEventListener('click', async () => {
+        if (ev.recurring) {
+          const cancelled = await App.cancelClassOccurrence(ev.schedule_id, ev.date, ev.title);
+          if (cancelled) load();
+        } else {
+          openEventModal(ev.date, ev);
+        }
+      });
+      App.bindActivate(el);
+    });
+  }
+
+  // --- Desktop: 7-column week grid ---
+
   function renderTimetable(weekStart, events) {
+    viewDayBtn.classList.remove('active');
+    viewWeekBtn.classList.add('active');
+    prevBtn.setAttribute('aria-label', 'Previous week');
+    nextBtn.setAttribute('aria-label', 'Next week');
+    weekLabel.classList.remove('today');
+    body.classList.remove('agenda-mode');
+
     const today = new Date();
     const todayISO = App.toISO(today);
     const nowMinutes = today.getHours() * 60 + today.getMinutes();
@@ -152,7 +227,7 @@ const Dashboard = (() => {
   const pageEl = document.getElementById('page-dashboard');
 
   async function load() {
-    const weekStart = App.startOfWeek(App.addDays(new Date(), weekOffset * 7));
+    const weekStart = App.startOfWeek(selectedDate);
     const weekEnd = App.addDays(weekStart, 6);
     pageEl.setAttribute('aria-busy', 'true');
     try {
@@ -162,7 +237,9 @@ const Dashboard = (() => {
         fetchRecurringOccurrences(weekStart, weekEnd),
       ]);
       renderStats(stats);
-      renderTimetable(weekStart, events.concat(recurring));
+      const allEvents = events.concat(recurring);
+      if (isMobile()) renderDayAgenda(selectedDate, allEvents);
+      else renderTimetable(weekStart, allEvents);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -292,5 +369,8 @@ const Dashboard = (() => {
     load();
   });
 
-  return { load };
+  return {
+    load,
+    fabTargetDate: () => (isMobile() ? App.toISO(selectedDate) : App.toISO(new Date())),
+  };
 })();

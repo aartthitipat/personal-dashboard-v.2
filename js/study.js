@@ -25,9 +25,9 @@ const Study = (() => {
         <p>${App.escapeHtml(m.name)} &middot; ${App.escapeHtml(m.role)}</p>
         <p>${App.escapeHtml(m.tagline)}</p>
       </div>
-      <div class="chat-messages" data-key="${m.key}"></div>
+      <div class="chat-messages" data-key="${m.key}" role="log" aria-live="polite" aria-label="Conversation with ${App.escapeHtml(m.name)}"></div>
       <form class="chat-form" data-key="${m.key}">
-        <input class="field" placeholder="Message ${App.escapeHtml(m.name)}..." data-key="${m.key}">
+        <input class="field" placeholder="Message ${App.escapeHtml(m.name)}..." aria-label="Message ${App.escapeHtml(m.name)}" data-key="${m.key}">
         <button type="submit" class="btn btn-primary">Send</button>
       </form>
     </div>
@@ -130,12 +130,17 @@ const Study = (() => {
     renderMessages(key);
   }
 
+  const pageEl = document.getElementById('page-study');
+
   async function load() {
     renderTabs();
+    pageEl.setAttribute('aria-busy', 'true');
     try {
       await Promise.all(MEMBERS.map((m) => reload(m.key)));
     } catch (err) {
       alert(err.message);
+    } finally {
+      pageEl.removeAttribute('aria-busy');
     }
   }
 

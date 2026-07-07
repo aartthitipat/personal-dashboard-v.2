@@ -3,6 +3,7 @@ const Finances = (() => {
 
   let managingSubs = false;
   let editingGoal = false;
+  let editingSubId = null;
   let transactions = [];
   let subscriptions = [];
   let savingsGoal = null;
@@ -14,6 +15,8 @@ const Finances = (() => {
   const goalForm = document.getElementById('fin-goal-form');
   const subForm = document.getElementById('fin-sub-form');
   const manageSubsBtn = document.getElementById('fin-manage-subs');
+  const subCancelBtn = document.getElementById('fin-sub-cancel');
+  const subSubmitBtn = document.getElementById('fin-sub-submit-btn');
 
   txnCategorySelect.innerHTML = CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('');
   document.getElementById('fin-txn-date').value = App.toISO(new Date());
@@ -79,25 +82,43 @@ const Finances = (() => {
     await load();
   });
 
+  function openSubForm(s) {
+    editingSubId = s ? s.id : null;
+    subCancelBtn.style.display = s ? '' : 'none';
+    subSubmitBtn.textContent = s ? 'Save Subscription' : 'Add Subscription';
+    document.getElementById('fin-sub-name').value = s ? s.name : '';
+    document.getElementById('fin-sub-plan').value = s ? (s.plan || '') : '';
+    document.getElementById('fin-sub-amount').value = s ? s.amount : '';
+    document.getElementById('fin-sub-billing-day').value = s ? s.billing_day : '';
+  }
+
   manageSubsBtn.addEventListener('click', () => {
     managingSubs = !managingSubs;
+    openSubForm(null);
     subForm.style.display = managingSubs ? 'grid' : 'none';
     manageSubsBtn.textContent = managingSubs ? 'Done' : 'Manage Subscriptions';
     renderSubs();
   });
 
+  subCancelBtn.addEventListener('click', () => openSubForm(null));
+
   subForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('fin-sub-name').value.trim();
     const amount = document.getElementById('fin-sub-amount').value;
-    if (!name || !amount) return;
-    const { error } = await sb.from('subscriptions').insert({
+    const billingDay = document.getElementById('fin-sub-billing-day').value;
+    if (!name || !amount || !billingDay) return;
+    const payload = {
       name,
       plan: document.getElementById('fin-sub-plan').value.trim() || null,
       amount: Number(amount),
-    });
+      billing_day: Number(billingDay),
+    };
+    const { error } = editingSubId
+      ? await sb.from('subscriptions').update(payload).eq('id', editingSubId)
+      : await sb.from('subscriptions').insert(payload);
     if (error) return alert(error.message);
-    subForm.reset();
+    openSubForm(null);
     await load();
   });
 
@@ -217,16 +238,22 @@ const Finances = (() => {
           <span class="sub-avatar">${App.escapeHtml(s.name.charAt(0).toUpperCase())}</span>
           <div>
             <p class="sub-name">${App.escapeHtml(s.name)}</p>
-            <p class="sub-plan">${App.escapeHtml(s.plan || '')}</p>
+            <p class="sub-plan">${App.escapeHtml(s.plan || '')}${s.plan ? ' &middot; ' : ''}Bills on day ${s.billing_day}</p>
           </div>
         </div>
         <div class="sub-right">
           <span class="sub-amount">${App.currency(s.amount)}</span>
-          ${managingSubs ? `<button class="btn-link-danger" data-id="${s.id}">Remove</button>` : ''}
+          ${managingSubs ? `<button class="btn-link-danger" data-action="edit" data-id="${s.id}" style="color:var(--color-primary);">Edit</button><button class="btn-link-danger" data-action="delete" data-id="${s.id}">Remove</button>` : ''}
         </div>
       </div>
     `).join('');
-    list.querySelectorAll('.btn-link-danger').forEach((btn) => {
+    list.querySelectorAll('[data-action="edit"]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const s = subscriptions.find((x) => String(x.id) === btn.dataset.id);
+        if (s) openSubForm(s);
+      });
+    });
+    list.querySelectorAll('[data-action="delete"]').forEach((btn) => {
       btn.addEventListener('click', () => deleteSub(btn.dataset.id));
     });
   }
@@ -254,11 +281,61 @@ const Finances = (() => {
     document.getElementById('fin-total-balance').textContent = App.currency(income - expense);
   }
 
-  async function load() {
+  function daysInMonth(year, monthIndex) {
+    return new Date(year, monthIndex + 1, 0).getDate();
+  }
+
+  function nextDueDate(billingDay, lastChargedOn, today) {
+    // Start searching from the month after the last charge, or the current month if never charged.
+    // A 1-indexed month number from the date string doubles as "next month" when passed as Date's 0-indexed month.
+    const [year, month] = lastChargedOn
+      ? lastChargedOn.split('-').map(Number)
+      : [today.getFullYear(), today.getMonth()];
+    const dim = daysInMonth(year, month);
+    return billingDay <= dim
+      ? new Date(year, month, billingDay)
+      : new Date(year, month + 1, 1);
+  }
+
+  // Guards against overlapping runs (e.g. a double nav-click firing Finances.load()
+  // twice) racing on the same stale last_charged_on and both inserting a charge.
+  let chargeInFlight = null;
+
+  async function chargeDueSubscriptions() {
+    if (chargeInFlight) return chargeInFlight;
+    chargeInFlight = (async () => {
+      const { data: subs, error } = await sb.from('subscriptions').select('id, name, amount, billing_day, last_charged_on');
+      if (error || !subs) return;
+      const today = new Date();
+      const todayISO = App.toISO(today);
+      for (const s of subs) {
+        if (nextDueDate(s.billing_day, s.last_charged_on, today) > today) continue;
+        // Posted as pending_review, not completed: same pattern as other machine-inserted
+        // transactions, so a mis-set billing day or a retroactive first charge needs the
+        // user's confirmation before it counts as real spend.
+        const { error: insErr } = await sb.from('transactions').insert({
+          type: 'expense', amount: s.amount, vendor: s.name, category: 'Subscriptions', date: todayISO, status: 'pending_review',
+        });
+        if (insErr) continue;
+        await sb.from('subscriptions').update({ last_charged_on: todayISO }).eq('id', s.id);
+      }
+    })();
     try {
+      await chargeInFlight;
+    } finally {
+      chargeInFlight = null;
+    }
+  }
+
+  const pageEl = document.getElementById('page-finances');
+
+  async function load() {
+    pageEl.setAttribute('aria-busy', 'true');
+    try {
+      await chargeDueSubscriptions();
       const [txnRes, subRes, goalRes] = await Promise.all([
         sb.from('transactions').select('id, type, amount, vendor, category, date, status').order('date', { ascending: false }),
-        sb.from('subscriptions').select('id, name, plan, amount').order('id'),
+        sb.from('subscriptions').select('id, name, plan, amount, billing_day, last_charged_on').order('id'),
         sb.from('savings_goal').select('id, label, target_amount, current_amount, target_date').eq('id', 1).single(),
       ]);
       if (txnRes.error) throw txnRes.error;
@@ -277,6 +354,8 @@ const Finances = (() => {
       renderTxnTable();
     } catch (err) {
       alert(err.message);
+    } finally {
+      pageEl.removeAttribute('aria-busy');
     }
   }
 

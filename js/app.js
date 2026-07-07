@@ -40,6 +40,22 @@ const App = {
       return '#';
     }
   },
+
+  // Makes a non-button element (calendar cell, event block/pill) keyboard-operable
+  // by reusing its existing click handler: Enter/Space triggers a real click,
+  // so any e.stopPropagation() inside that handler still behaves the same way
+  // it does for a mouse click.
+  bindActivate(el, label) {
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('role', 'button');
+    if (label) el.setAttribute('aria-label', label);
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        el.click();
+      }
+    });
+  },
   TYPE_LABEL: { session: 'Study Session', exam: 'Exam', deadline: 'Deadline', task: 'Task' },
   TYPE_CLASS: { session: 'session', exam: 'exam', deadline: 'deadline', task: 'task' },
 

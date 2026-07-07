@@ -65,7 +65,7 @@
     <header class="topbar">
       <div class="search-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><path stroke-linecap="round" d="M21 21l-4.3-4.3"></path></svg>
-        <input type="search" class="search-input" placeholder="Search sessions, tasks, or finances...">
+        <input type="search" class="search-input" placeholder="Search sessions, tasks, or finances..." aria-label="Search sessions, tasks, or finances">
       </div>
       <div class="topbar-actions">
         <button class="icon-btn" id="theme-toggle" aria-label="Toggle dark mode"></button>
@@ -87,10 +87,10 @@
           <h2>Study Timetable</h2>
           <div style="display:flex;align-items:center;gap:16px;">
             <button class="btn btn-secondary" id="dash-manage-schedule">Manage Class Schedule</button>
-            <div class="segmented">
-              <span class="disabled">Day</span>
-              <span class="active">Week</span>
-              <span id="dash-go-calendar">Month</span>
+            <div class="segmented" role="group" aria-label="Timetable view">
+              <button type="button" class="disabled" disabled>Day</button>
+              <button type="button" class="active" disabled>Week</button>
+              <button type="button" id="dash-go-calendar">Month</button>
             </div>
             <div class="stepper">
               <button id="dash-prev-week" aria-label="Previous week">&lsaquo;</button>
@@ -121,14 +121,14 @@
         </div>
 
         <form class="txn-form" id="fin-txn-form" style="display:none;">
-          <select class="field" id="fin-txn-type">
+          <select class="field" id="fin-txn-type" aria-label="Transaction type">
             <option value="expense">Expense</option>
             <option value="income">Income</option>
           </select>
-          <input class="field" required type="number" step="0.01" placeholder="Amount" id="fin-txn-amount">
-          <input class="field" required placeholder="Vendor" id="fin-txn-vendor">
-          <select class="field" id="fin-txn-category"></select>
-          <input class="field" required type="date" id="fin-txn-date">
+          <input class="field" required type="number" step="0.01" placeholder="Amount" id="fin-txn-amount" aria-label="Amount">
+          <input class="field" required placeholder="Vendor" id="fin-txn-vendor" aria-label="Vendor">
+          <select class="field" id="fin-txn-category" aria-label="Category"></select>
+          <input class="field" required type="date" id="fin-txn-date" aria-label="Date">
           <button type="submit" class="btn btn-primary span-2">Save</button>
         </form>
 
@@ -151,10 +151,10 @@
             </div>
             <form class="goal-form" id="fin-goal-form" style="display:none;">
               <p class="eyebrow" style="margin:0;">Edit Savings Goal</p>
-              <input class="field" placeholder="Goal name" id="fin-goal-label">
+              <input class="field" placeholder="Goal name" id="fin-goal-label" aria-label="Goal name">
               <div class="goal-form-grid">
-                <input class="field" required type="number" placeholder="Target amount" id="fin-goal-target-input">
-                <input class="field" type="number" placeholder="Saved so far" id="fin-goal-current-input">
+                <input class="field" required type="number" placeholder="Target amount" id="fin-goal-target-input" aria-label="Target amount">
+                <input class="field" type="number" placeholder="Saved so far" id="fin-goal-current-input" aria-label="Saved so far">
               </div>
               <div class="goal-form-actions">
                 <button type="submit" class="btn-sm btn-primary-sm">Save</button>
@@ -176,7 +176,7 @@
         <div class="finance-mid-row">
           <div class="card">
             <h2 class="eyebrow">Monthly Spending Breakdown</h2>
-            <svg viewBox="0 0 560 260" style="width:100%;height:260px;overflow:visible;" id="fin-chart"></svg>
+            <svg viewBox="0 0 560 260" style="width:100%;height:260px;overflow:visible;" id="fin-chart" role="img" aria-label="Monthly income and expense totals, last 6 months. Full figures are in the transaction history table below."></svg>
             <div class="chart-legend">
               <span><span class="legend-swatch" style="background:var(--color-success);"></span>Income</span>
               <span><span class="legend-swatch" style="background:var(--color-error);"></span>Expense</span>
@@ -187,10 +187,12 @@
             <h2 class="eyebrow">Active Subscriptions</h2>
             <div class="sub-list" id="fin-sub-list"></div>
             <form class="sub-form" id="fin-sub-form" style="display:none;">
-              <input class="field" required placeholder="Name" id="fin-sub-name" style="grid-column:span 2;">
-              <input class="field" placeholder="Plan (optional)" id="fin-sub-plan">
-              <input class="field" required type="number" step="0.01" placeholder="Amount" id="fin-sub-amount">
-              <button type="submit" class="btn-sm btn-primary-sm" style="grid-column:span 2;">Add Subscription</button>
+              <input class="field" required placeholder="Name" id="fin-sub-name" style="grid-column:span 2;" aria-label="Subscription name">
+              <input class="field" placeholder="Plan (optional)" id="fin-sub-plan" aria-label="Plan">
+              <input class="field" required type="number" step="0.01" placeholder="Amount" id="fin-sub-amount" aria-label="Amount">
+              <input class="field" required type="number" min="1" max="31" placeholder="Bills on day (1-31)" id="fin-sub-billing-day" aria-label="Billing day of month">
+              <button type="button" class="btn-sm btn-secondary-sm" id="fin-sub-cancel" style="display:none;">Cancel</button>
+              <button type="submit" class="btn-sm btn-primary-sm" id="fin-sub-submit-btn" style="grid-column:span 2;">Add Subscription</button>
             </form>
             <button class="manage-subs-btn" id="fin-manage-subs">Manage Subscriptions</button>
           </div>
@@ -243,20 +245,20 @@
     <div class="modal">
       <div class="modal-head">
         <h2 id="event-modal-title">Create Event</h2>
-        <button class="modal-close" id="event-modal-close">&#10005;</button>
+        <button class="modal-close" id="event-modal-close" aria-label="Close">&#10005;</button>
       </div>
       <form class="event-form" id="event-form">
-        <input class="field span-2" required placeholder="Title" id="event-title">
-        <select class="field span-2" id="event-type">
+        <input class="field span-2" required placeholder="Title" id="event-title" aria-label="Title">
+        <select class="field span-2" id="event-type" aria-label="Event type">
           <option value="session">Study Session</option>
           <option value="exam">Exam</option>
           <option value="deadline">Deadline</option>
           <option value="task">Task</option>
         </select>
-        <input class="field span-2" required type="date" id="event-date">
-        <input class="field" type="time" id="event-start">
-        <input class="field" type="time" id="event-end">
-        <input class="field span-2" placeholder="Location" id="event-location">
+        <input class="field span-2" required type="date" id="event-date" aria-label="Date">
+        <input class="field" type="time" id="event-start" aria-label="Start time">
+        <input class="field" type="time" id="event-end" aria-label="End time">
+        <input class="field span-2" placeholder="Location" id="event-location" aria-label="Location">
         <div class="span-2 submit-row event-form-actions">
           <button type="button" class="btn btn-danger" id="event-delete" style="display:none;">Delete Event</button>
           <button type="submit" class="btn btn-primary">Save Event</button>
@@ -269,14 +271,14 @@
     <div class="modal">
       <div class="modal-head">
         <h2>Manage Class Schedule</h2>
-        <button class="modal-close" id="schedule-modal-close">&#10005;</button>
+        <button class="modal-close" id="schedule-modal-close" aria-label="Close">&#10005;</button>
       </div>
 
-      <div class="sub-list" id="schedule-list" style="margin-bottom:20px;"></div>
+      <div class="schedule-week-grid" id="schedule-list" style="margin-bottom:20px;"></div>
 
       <form class="event-form" id="schedule-form">
-        <input class="field span-2" required placeholder="Title" id="schedule-title">
-        <select class="field span-2" id="schedule-day">
+        <input class="field span-2" required placeholder="Title" id="schedule-title" aria-label="Title">
+        <select class="field span-2" id="schedule-day" aria-label="Day of week">
           <option value="1">Monday</option>
           <option value="2">Tuesday</option>
           <option value="3">Wednesday</option>
@@ -285,9 +287,9 @@
           <option value="6">Saturday</option>
           <option value="0">Sunday</option>
         </select>
-        <input class="field" required type="time" id="schedule-start">
-        <input class="field" type="time" id="schedule-end">
-        <input class="field span-2" placeholder="Location" id="schedule-location">
+        <input class="field" required type="time" id="schedule-start" aria-label="Start time">
+        <input class="field" type="time" id="schedule-end" aria-label="End time">
+        <input class="field span-2" placeholder="Location" id="schedule-location" aria-label="Location">
         <label class="span-2" style="font-size:12px;color:var(--color-on-surface-variant);">Starts on<input class="field" required type="date" id="schedule-valid-from" style="margin-top:4px;"></label>
         <label class="span-2" style="font-size:12px;color:var(--color-on-surface-variant);">Ends on (optional, leave blank to repeat indefinitely)<input class="field" type="date" id="schedule-valid-until" style="margin-top:4px;"></label>
         <div class="span-2 submit-row event-form-actions">

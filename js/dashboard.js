@@ -107,8 +107,9 @@ const Dashboard = (() => {
         const top = (startMin / 60) * HOUR_HEIGHT;
         const height = Math.max(((endMin - startMin) / 60) * HOUR_HEIGHT, 32);
         const cls = App.TYPE_CLASS[ev.type] || 'session';
+        const timeLabel = ev.end_time ? `${ev.start_time} to ${ev.end_time}` : ev.start_time;
         return `
-          <div class="event-block ev-${cls} ${ev.recurring ? 'recurring' : ''}" data-id="${ev.id}" style="top:${top}px;height:${height}px;">
+          <div class="event-block ev-${cls} ${ev.recurring ? 'recurring' : ''}" data-id="${ev.id}" style="top:${top}px;height:${height}px;" aria-label="${App.escapeHtml(ev.title)}, ${timeLabel}${ev.recurring ? ', recurring' : ''}">
             <p class="time">${ev.end_time ? `${ev.start_time} - ${ev.end_time}` : ev.start_time}</p>
             <p class="title">${App.escapeHtml(ev.title)}</p>
             ${ev.location ? `<p class="loc">${App.escapeHtml(ev.location)}</p>` : ''}
@@ -122,13 +123,14 @@ const Dashboard = (() => {
         ? `<div class="now-line" style="top:${((nowMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT}px;"></div>`
         : '';
 
-      return `<div class="timetable-col" data-date="${iso}">${slotDivs}${nowLine}${blocks}</div>`;
+      return `<div class="timetable-col" data-date="${iso}" aria-label="Create event on ${iso}">${slotDivs}${nowLine}${blocks}</div>`;
     }).join('');
 
     body.innerHTML = hoursCol + dayCols;
 
     body.querySelectorAll('.timetable-col').forEach((col) => {
       col.addEventListener('click', () => openEventModal(col.dataset.date));
+      App.bindActivate(col);
     });
 
     body.querySelectorAll('.event-block').forEach((block) => {
@@ -143,12 +145,16 @@ const Dashboard = (() => {
           openEventModal(ev.date, ev);
         }
       });
+      App.bindActivate(block);
     });
   }
+
+  const pageEl = document.getElementById('page-dashboard');
 
   async function load() {
     const weekStart = App.startOfWeek(App.addDays(new Date(), weekOffset * 7));
     const weekEnd = App.addDays(weekStart, 6);
+    pageEl.setAttribute('aria-busy', 'true');
     try {
       const [stats, events, recurring] = await Promise.all([
         fetchStats(),
@@ -159,6 +165,8 @@ const Dashboard = (() => {
       renderTimetable(weekStart, events.concat(recurring));
     } catch (err) {
       alert(err.message);
+    } finally {
+      pageEl.removeAttribute('aria-busy');
     }
   }
 
@@ -179,36 +187,41 @@ const Dashboard = (() => {
     return data;
   }
 
+  const WEEK_GRID_DAYS = [1, 2, 3, 4, 5, 6, 0]; // Mon..Sun, matching #schedule-day's option order
+
   function renderScheduleList(schedules) {
     const list = document.getElementById('schedule-list');
-    if (!schedules.length) {
-      list.innerHTML = '<p style="font-size:13px;color:var(--color-on-surface-variant);">No recurring classes yet.</p>';
-      return;
-    }
-    list.innerHTML = schedules.map((s) => `
-      <div class="sub-row">
-        <div class="sub-left">
-          <span class="sub-avatar">${App.escapeHtml(DAY_NAMES[s.day_of_week])}</span>
-          <div>
-            <p class="sub-name">${App.escapeHtml(s.title)}</p>
-            <p class="sub-plan">${s.start_time}${s.end_time ? ` - ${s.end_time}` : ''}${s.location ? ` &middot; ${App.escapeHtml(s.location)}` : ''}</p>
-          </div>
+    list.innerHTML = WEEK_GRID_DAYS.map((dow) => {
+      const dayClasses = schedules
+        .filter((s) => s.day_of_week === dow)
+        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+      const cards = dayClasses.length
+        ? dayClasses.map((s) => `
+            <div class="schedule-class-card" data-id="${s.id}">
+              <button class="schedule-card-delete" type="button" data-action="delete" data-id="${s.id}" aria-label="Delete ${App.escapeHtml(s.title)}">&#10005;</button>
+              <p class="schedule-card-title">${App.escapeHtml(s.title)}</p>
+              <p class="schedule-card-time">${s.start_time}${s.end_time ? ` - ${s.end_time}` : ''}</p>
+              ${s.location ? `<p class="schedule-card-location">${App.escapeHtml(s.location)}</p>` : ''}
+            </div>
+          `).join('')
+        : '<p class="schedule-day-empty">&mdash;</p>';
+      return `
+        <div class="schedule-day-col">
+          <p class="schedule-day-head">${DAY_NAMES[dow]}</p>
+          ${cards}
         </div>
-        <div class="sub-right">
-          <button class="btn-link-danger" data-action="edit" data-id="${s.id}" style="color:var(--color-primary);">Edit</button>
-          <button class="btn-link-danger" data-action="delete" data-id="${s.id}">Delete</button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
-    list.querySelectorAll('[data-action="edit"]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const s = schedules.find((x) => String(x.id) === btn.dataset.id);
+    list.querySelectorAll('.schedule-class-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const s = schedules.find((x) => String(x.id) === card.dataset.id);
         if (s) openScheduleForm(s);
       });
     });
     list.querySelectorAll('[data-action="delete"]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         if (!confirm('Delete this entire weekly class series?')) return;
         const { error } = await sb.from('class_schedule').delete().eq('id', btn.dataset.id);
         if (error) return alert(error.message);

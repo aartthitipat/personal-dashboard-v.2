@@ -30,3 +30,7 @@ Personal budgeting/expense tracker. Stack: plain HTML/CSS/JS frontend calling Su
 - Keep the frontend dependency-free of frameworks; `supabase-js` (pinned version, loaded with a Subresource Integrity hash) is the one exception, since it's required to talk to the backend.
 - All money values in this project are stored as `double precision`, matching the existing `transactions`/`subscriptions` convention — don't switch `budgets` to `DECIMAL`/`numeric` just for this module, consistency with the existing schema wins here.
 - Any DDL/RLS change against the Supabase project goes through `apply_migration`, not ad-hoc `execute_sql`.
+
+## Design Context
+
+`PRODUCT.md` and `DESIGN.md` at the repo root capture this project's design system (register: brand — "The Ledger" North Star, Ledger Blue accent, confident/structured personality). Read them before making visual changes; the `impeccable` skill (`.claude/skills/impeccable/`) uses them automatically for `craft`/`polish`/`critique`/`live` and other design commands.

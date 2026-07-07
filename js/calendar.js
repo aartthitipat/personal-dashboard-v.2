@@ -52,10 +52,11 @@ const Calendar = (() => {
       const dayEvents = events.filter((e) => e.date === iso);
       const pills = dayEvents.map((ev) => {
         const cls = App.TYPE_CLASS[ev.type] || 'session';
-        return `<span class="event-pill ${cls} ${ev.recurring ? 'recurring' : ''}" data-id="${ev.id}" title="${App.escapeHtml(ev.title)}">${App.escapeHtml(ev.title)}</span>`;
+        const label = `${ev.title}${ev.recurring ? ' (recurring)' : ''}`;
+        return `<span class="event-pill ${cls} ${ev.recurring ? 'recurring' : ''}" data-id="${ev.id}" title="${App.escapeHtml(ev.title)}" aria-label="${App.escapeHtml(label)}">${App.escapeHtml(ev.title)}</span>`;
       }).join('');
       return `
-        <div class="month-cell ${isToday ? 'today' : ''} ${inMonth ? '' : 'out-of-month'}" data-date="${iso}">
+        <div class="month-cell ${isToday ? 'today' : ''} ${inMonth ? '' : 'out-of-month'}" data-date="${iso}" aria-label="Create event on ${iso}">
           <span class="num ${isToday ? 'today' : ''}">${d.getDate()}</span>
           <div class="month-cell-events">${pills}</div>
         </div>
@@ -64,6 +65,7 @@ const Calendar = (() => {
 
     cellsEl.querySelectorAll('.month-cell').forEach((cell) => {
       cell.addEventListener('click', () => openEventModal(cell.dataset.date));
+      App.bindActivate(cell);
     });
 
     cellsEl.querySelectorAll('.event-pill').forEach((pill) => {
@@ -78,13 +80,20 @@ const Calendar = (() => {
           openEventModal(ev.date, ev);
         }
       });
+      pill.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') e.stopPropagation();
+      });
+      App.bindActivate(pill);
     });
   }
+
+  const pageEl = document.getElementById('page-calendar');
 
   async function load() {
     const monthDate = new Date(new Date().getFullYear(), new Date().getMonth() + monthOffset, 1);
     const gridStart = App.startOfMonthGrid(monthDate);
     const gridEnd = App.addDays(gridStart, 41);
+    pageEl.setAttribute('aria-busy', 'true');
     try {
       const [events, recurring] = await Promise.all([
         fetchEvents(gridStart, gridEnd),
@@ -93,6 +102,8 @@ const Calendar = (() => {
       render(monthDate, events.concat(recurring));
     } catch (err) {
       alert(err.message);
+    } finally {
+      pageEl.removeAttribute('aria-busy');
     }
   }
 

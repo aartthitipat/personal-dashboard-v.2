@@ -56,7 +56,7 @@ const App = {
       }
     });
   },
-  TYPE_LABEL: { session: 'Study Session', exam: 'Exam', deadline: 'Deadline', task: 'Task' },
+  TYPE_LABEL: { session: 'Study', exam: 'Exam', deadline: 'Deadline', task: 'Task' },
   TYPE_CLASS: { session: 'session', exam: 'exam', deadline: 'deadline', task: 'task' },
 
   // Expands weekly class_schedule templates into concrete virtual occurrences

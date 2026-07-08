@@ -46,7 +46,14 @@ const Dashboard = (() => {
   }
 
   function renderStats({ income, expense }) {
+    const balance = income - expense;
     statGrid.innerHTML = `
+      <div class="card">
+        <div class="card-top-row"><span class="pill">Current</span></div>
+        <p class="stat-label">Total Balance</p>
+        <p class="stat-value">${App.currency(balance)}</p>
+        <div class="stat-foot ${balance >= 0 ? 'up' : 'down'}">${balance >= 0 ? 'Positive' : 'Negative'} across all recorded transactions</div>
+      </div>
       <div class="card">
         <p class="stat-label">Total Income</p>
         <p class="stat-value">${App.currency(income)}</p>

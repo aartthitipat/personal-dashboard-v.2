@@ -38,6 +38,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"/></svg>
         <span class="nav-label">Study</span>
       </button>
+      <button class="nav-item" data-nav="websites" title="Websites">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
+        <span class="nav-label">Websites</span>
+      </button>
     </nav>
     <div class="sidebar-footer">Personal workspace &mdash; finances, calendar, and study, all in one place.</div>
   </aside>
@@ -58,6 +62,10 @@
     <button class="nav-item mobile-nav-item" data-nav="study" title="Study">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"/></svg>
       <span class="mobile-nav-label">Study</span>
+    </button>
+    <button class="nav-item mobile-nav-item" data-nav="websites" title="Websites">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
+      <span class="mobile-nav-label">Websites</span>
     </button>
   </nav>
 
@@ -248,6 +256,27 @@
         <div id="study-panels"></div>
       </section>
 
+      <section class="page" id="page-websites">
+        <div class="finance-header">
+          <div>
+            <h1>Websites</h1>
+            <p>Websites you've built.</p>
+          </div>
+          <div class="finance-actions">
+            <button class="btn btn-primary" id="web-toggle-add">+ Add Website</button>
+          </div>
+        </div>
+
+        <form class="web-form" id="web-form" style="display:none;">
+          <input class="field" required placeholder="Name" id="web-name" aria-label="Website name">
+          <input class="field" required type="url" placeholder="Link (https://...)" id="web-url" aria-label="Website link">
+          <input class="field span-2" type="url" placeholder="Image URL (optional)" id="web-image" aria-label="Image URL">
+          <button type="submit" class="btn btn-primary span-2">Save</button>
+        </form>
+
+        <div class="web-grid" id="web-grid"></div>
+      </section>
+
     </main>
   </div>
 
@@ -321,5 +350,6 @@
 <script src="js/finances.js"></script>
 <script src="js/calendar.js"></script>
 <script src="js/study.js"></script>
+<script src="js/websites.js"></script>
 </body>
 </html>

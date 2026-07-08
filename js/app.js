@@ -186,6 +186,7 @@ function goPage(name) {
   if (name === 'finances') Finances.load();
   if (name === 'calendar') Calendar.load();
   if (name === 'study') Study.load();
+  if (name === 'websites') Websites.load();
 }
 
 document.querySelectorAll('[data-nav]').forEach((el) => {

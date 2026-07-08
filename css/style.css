@@ -488,6 +488,7 @@ button.pill:hover { filter: brightness(0.95); }
 .sub-right { display: flex; align-items: center; gap: 12px; }
 .sub-amount { font-weight: 500; color: var(--color-on-surface); }
 .sub-form { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid var(--color-outline-variant); padding-top: 16px; }
+.sub-form .span-2 { grid-column: span 2; }
 .manage-subs-btn { margin-top: 16px; width: 100%; border-radius: 0.75rem; border: 1px solid var(--color-outline-variant); background: none; padding: 8px; font-size: 14px; font-weight: 500; color: var(--color-primary); cursor: pointer; transition: background 0.15s ease-out; }
 .manage-subs-btn:hover { background: var(--color-surface-container); }
 
@@ -590,7 +591,8 @@ button.pill:hover { filter: brightness(0.95); }
   .mobile-nav { display: flex; }
   .pages { padding-bottom: 72px; }
   .fab { bottom: calc(72px + 16px); }
-  .stat-grid, .finance-cards-row, .finance-mid-row, .txn-form, .study-tabs { grid-template-columns: 1fr; }
+  .stat-grid, .finance-cards-row, .finance-mid-row, .txn-form, .sub-form, .study-tabs { grid-template-columns: 1fr; }
+  .txn-form .span-2, .sub-form .span-2 { grid-column: auto; }
 
   .timetable-controls { flex-direction: column; align-items: stretch; gap: 12px; }
   .timetable-controls .tt-view-row { order: -1; justify-content: space-between; }

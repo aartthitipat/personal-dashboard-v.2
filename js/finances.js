@@ -45,6 +45,114 @@ const Finances = (() => {
     await load();
   });
 
+  // --- Scan Slip: photo -> slip-scan Edge Function (Gemini vision) -> confirm modal ---
+
+  const scanBtn = document.getElementById('fin-scan-slip');
+  const slipInput = document.getElementById('fin-slip-input');
+  const slipModalOverlay = document.getElementById('slip-modal-overlay');
+  const slipForm = document.getElementById('slip-form');
+  const slipSaveBtn = document.getElementById('slip-save-btn');
+
+  // Confidence comes from the model, not the form, so it rides alongside the
+  // editable fields until save.
+  let pendingConfidence = null;
+
+  document.getElementById('slip-category').innerHTML = CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('');
+
+  function setScanBusy(busy) {
+    scanBtn.disabled = busy;
+    scanBtn.textContent = busy ? 'Scanning…' : '▣ Scan Slip';
+  }
+
+  // Re-encodes any browser-decodable image (incl. iOS HEIC) to a small JPEG so
+  // phone photos don't ship multi-MB base64 payloads to the Edge Function.
+  async function downscaleImage(file) {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 1280 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    return { dataUrl, base64: dataUrl.split(',')[1] };
+  }
+
+  function openSlipModal(slip, dataUrl) {
+    slipForm.reset();
+    document.getElementById('slip-preview').src = dataUrl;
+    document.getElementById('slip-amount').value = slip.amount;
+    document.getElementById('slip-vendor').value = slip.vendor;
+    document.getElementById('slip-date').value = slip.date || App.toISO(new Date());
+    document.getElementById('slip-category').value = slip.category;
+    const pct = Math.round(slip.confidence * 100);
+    const confEl = document.getElementById('slip-confidence');
+    confEl.textContent = `Read with ${pct}% confidence — check the details before saving.`;
+    confEl.classList.toggle('low', slip.confidence < 0.7);
+    pendingConfidence = slip.confidence;
+    slipModalOverlay.classList.add('open');
+  }
+
+  function closeSlipModal() {
+    slipModalOverlay.classList.remove('open');
+    pendingConfidence = null;
+  }
+
+  const SCAN_FAIL_MESSAGES = {
+    not_a_slip: "That doesn't look like a payment slip. Try a clearer photo of the slip.",
+    not_configured: 'Slip scanning is not connected yet — the Gemini API key is missing.',
+    api_error: 'The slip reader had a problem. Try again in a moment.',
+  };
+
+  async function scanSlip(file) {
+    setScanBusy(true);
+    try {
+      const { dataUrl, base64 } = await downscaleImage(file);
+      const { data, error } = await sb.functions.invoke('slip-scan', {
+        body: { image: base64, mimeType: 'image/jpeg' },
+      });
+      if (error) throw error;
+      if (!data.ok) return alert(SCAN_FAIL_MESSAGES[data.reason] || data.message);
+      openSlipModal(data.slip, dataUrl);
+    } catch (err) {
+      alert(`Could not read that image. Try a JPEG/PNG photo of the slip. (${err.message})`);
+    } finally {
+      setScanBusy(false);
+      slipInput.value = '';
+    }
+  }
+
+  scanBtn.addEventListener('click', () => slipInput.click());
+  slipInput.addEventListener('change', () => {
+    if (slipInput.files[0]) scanSlip(slipInput.files[0]);
+  });
+
+  document.getElementById('slip-modal-close').addEventListener('click', closeSlipModal);
+  slipModalOverlay.addEventListener('click', (e) => {
+    if (e.target === slipModalOverlay) closeSlipModal();
+  });
+
+  slipForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    slipSaveBtn.disabled = true;
+    try {
+      const { error } = await sb.from('transactions').insert({
+        type: 'expense',
+        amount: Number(document.getElementById('slip-amount').value),
+        vendor: document.getElementById('slip-vendor').value.trim(),
+        category: document.getElementById('slip-category').value,
+        date: document.getElementById('slip-date').value,
+        status: 'completed',
+        confidence: pendingConfidence,
+      });
+      if (error) return alert(error.message);
+      closeSlipModal();
+      await load();
+    } finally {
+      slipSaveBtn.disabled = false;
+    }
+  });
+
   document.getElementById('fin-export').addEventListener('click', () => {
     const header = ['Date', 'Vendor', 'Category', 'Type', 'Status', 'Amount'];
     const csv = [header, ...transactions.map((t) => [t.date, t.vendor, t.category, t.type, t.status, t.amount])]

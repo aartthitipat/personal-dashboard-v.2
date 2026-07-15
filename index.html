@@ -125,8 +125,10 @@
             <p>Tracking your budget and personal expenses.</p>
           </div>
           <div class="finance-actions">
+            <button class="btn btn-secondary" id="fin-scan-slip">&#9635; Scan Slip</button>
             <button class="btn btn-secondary" id="fin-export">&darr; Export</button>
             <button class="btn btn-primary" id="fin-toggle-add">+ New Transaction</button>
+            <input type="file" id="fin-slip-input" accept="image/*" capture="environment" style="display:none;" aria-label="Payment slip photo">
           </div>
         </div>
 
@@ -335,6 +337,24 @@
           <button type="button" class="btn btn-danger" id="schedule-delete" style="display:none;">Delete Series</button>
           <button type="submit" class="btn btn-primary">Save Class</button>
         </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="slip-modal-overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Confirm Slip</h2>
+        <button class="modal-close" id="slip-modal-close" aria-label="Close">&#10005;</button>
+      </div>
+      <img id="slip-preview" class="slip-preview" alt="Scanned slip">
+      <p class="slip-confidence" id="slip-confidence"></p>
+      <form class="event-form" id="slip-form">
+        <input class="field" required type="number" step="0.01" min="0.01" placeholder="Amount" id="slip-amount" aria-label="Amount">
+        <input class="field" required placeholder="Vendor" id="slip-vendor" aria-label="Vendor">
+        <input class="field" required type="date" id="slip-date" aria-label="Date">
+        <select class="field" id="slip-category" aria-label="Category"></select>
+        <button type="submit" class="btn btn-primary span-2" id="slip-save-btn">Save Expense</button>
       </form>
     </div>
   </div>

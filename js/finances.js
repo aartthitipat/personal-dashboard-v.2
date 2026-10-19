@@ -294,48 +294,29 @@ const Finances = (() => {
   }
 
   function renderChart() {
-    const svg = document.getElementById('fin-chart');
     const now = new Date();
     const months = Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      return { key: `${d.getFullYear()}-${App.pad(d.getMonth() + 1)}`, label: d.toLocaleDateString('en-US', { month: 'short' }), income: 0, expense: 0 };
+      return {
+        key: `${d.getFullYear()}-${App.pad(d.getMonth() + 1)}`,
+        label: d.toLocaleDateString('en-US', { month: 'short' }),
+        income: 0,
+        expense: 0,
+      };
     });
     const byKey = Object.fromEntries(months.map((m) => [m.key, m]));
     for (const t of transactions) {
-      const key = t.date.slice(0, 7);
-      const bucket = byKey[key];
+      const bucket = byKey[t.date.slice(0, 7)];
       if (!bucket) continue;
       if (t.type === 'income') bucket.income += Number(t.amount);
       else bucket.expense += Number(t.amount);
     }
-
-    const chartW = 560;
-    const plotBottom = 230;
-    const plotTop = 20;
-    const maxVal = Math.max(...months.flatMap((m) => [m.income, m.expense]), 1);
-    const groupW = chartW / months.length;
-    const barW = groupW * 0.32;
-
-    const gridLines = [0, 1, 2, 3, 4].map((i) => {
-      const y = plotTop + (i * (plotBottom - plotTop)) / 4;
-      return `<line x1="0" x2="${chartW}" y1="${y}" y2="${y}" stroke="var(--color-outline-variant)" stroke-dasharray="3 3"></line>`;
-    }).join('');
-
-    const bars = months.map((m, i) => {
-      const groupX = i * groupW + groupW * 0.15;
-      const incomeH = (m.income / maxVal) * (plotBottom - plotTop);
-      const expenseH = (m.expense / maxVal) * (plotBottom - plotTop);
-      const incomeX = groupX;
-      const expenseX = groupX + barW + 6;
-      const labelX = groupX + barW + 3;
-      return `
-        <rect x="${incomeX}" y="${plotBottom - incomeH}" width="${barW}" height="${incomeH}" rx="3" fill="var(--color-success)"></rect>
-        <rect x="${expenseX}" y="${plotBottom - expenseH}" width="${barW}" height="${expenseH}" rx="3" fill="var(--color-error)"></rect>
-        <text x="${labelX}" y="248" font-size="12" fill="var(--color-on-surface-variant)" text-anchor="middle">${m.label}</text>
-      `;
-    }).join('');
-
-    svg.innerHTML = gridLines + bars;
+    Charts.stackedBars(document.getElementById('fin-chart'), months, {
+      id: 'fin-chart-svg',
+      heading: 'Monthly income and expenses, last 6 months',
+      every: 1,
+      money: App.currency,
+    });
   }
 
   function renderSubs() {
@@ -351,7 +332,7 @@ const Finances = (() => {
         </div>
         <div class="sub-right">
           <span class="sub-amount">${App.currency(s.amount)}</span>
-          ${managingSubs ? `<button class="btn-link-danger" data-action="edit" data-id="${s.id}" style="color:var(--color-primary);">Edit</button><button class="btn-link-danger" data-action="delete" data-id="${s.id}">Remove</button>` : ''}
+          ${managingSubs ? `<button class="btn-link" data-action="edit" data-id="${s.id}">Edit</button><button class="btn-link-danger" data-action="delete" data-id="${s.id}">Remove</button>` : ''}
         </div>
       </div>
     `).join('');

@@ -2,38 +2,38 @@
 name: Personal Dashboard
 description: A confident, structured single-user workspace for finances, calendar, and study.
 colors:
-  primary: "#004ac6"
-  primary-container: "#2563eb"
+  primary: "#1d4ed8"
+  primary-container: "#3b82f6"
   on-primary: "#ffffff"
-  on-primary-container: "#eeefff"
-  secondary: "#505f76"
-  secondary-container: "#d0e1fb"
+  on-primary-container: "#eef4ff"
+  secondary: "#475e8a"
+  secondary-container: "#c7d9f8"
   on-secondary: "#ffffff"
-  on-secondary-container: "#54647a"
-  tertiary: "#525657"
-  tertiary-container: "#6b6e70"
+  on-secondary-container: "#4a5f8b"
+  tertiary: "#6366f1"
+  tertiary-container: "#818cf8"
   on-tertiary: "#ffffff"
-  on-tertiary-container: "#eff1f3"
-  error: "#ba1a1a"
-  error-container: "#ffdad6"
+  on-tertiary-container: "#eef2ff"
+  error: "#dc2626"
+  error-container: "#fee2e2"
   on-error: "#ffffff"
-  on-error-container: "#93000a"
-  success: "#15803d"
+  on-error-container: "#991b1b"
+  success: "#16a34a"
   success-container: "#dcfce7"
   on-success: "#ffffff"
   on-success-container: "#166534"
-  surface: "#faf8ff"
-  surface-dim: "#d2d9f4"
+  surface: "#f0f4ff"
+  surface-dim: "#c8d4f0"
   surface-container-lowest: "#ffffff"
-  surface-container-low: "#f2f3ff"
-  surface-container: "#eaedff"
-  surface-container-high: "#e2e7ff"
-  surface-container-highest: "#dae2fd"
-  on-surface: "#131b2e"
-  on-surface-variant: "#434655"
-  outline: "#737686"
-  outline-variant: "#c3c6d7"
-  background: "#faf8ff"
+  surface-container-low: "#eef2ff"
+  surface-container: "#e4eafc"
+  surface-container-high: "#d8e0f8"
+  surface-container-highest: "#cdd8f2"
+  on-surface: "#0c1225"
+  on-surface-variant: "#3d4663"
+  outline: "#6b7394"
+  outline-variant: "#bcc5e0"
+  background: "#f0f4ff"
 typography:
   headline:
     fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', sans-serif"
@@ -96,7 +96,7 @@ components:
     backgroundColor: "{colors.surface-container-lowest}"
     textColor: "{colors.on-surface}"
     rounded: "{rounded.lg}"
-    padding: "24px"
+    padding: "20px"
   field:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.on-surface}"
@@ -132,25 +132,25 @@ The system ships full light and dark themes via `[data-theme="dark"]` on `:root`
 Cool, saturated blue as the single committed accent against a near-white (light) or near-black (dark) neutral field, with slate and graphite as quiet secondary/tertiary roles that never compete with the primary.
 
 ### Primary
-- **Ledger Blue** (`#004ac6` light / `#aac7ff` dark): the one color that means "this is active, primary, or actionable." Used on primary buttons, the active nav item's label, the current-time line on the timetable, chart's positive series, progress fill, and links.
+- **Ledger Blue** (`#1d4ed8` light / `#93b4ff` dark): the one color that means "this is active, primary, or actionable." Used on primary buttons, the active nav item's label, the current-time line on the timetable, chart's positive series, progress fill, and links.
 
 ### Secondary
-- **Slate** (`#505f76` light / `#aec7f7` dark): the active-nav-item background family and subscription-avatar accents. A cooler, quieter partner to Ledger Blue — never used for primary actions.
+- **Slate** (`#475e8a` light / `#93aef0` dark): the active-nav-item background family and subscription-avatar accents. A cooler, quieter partner to Ledger Blue — never used for primary actions.
 
 ### Tertiary
-- **Graphite** (`#525657` light / `#ffb68c` dark): reserved for the exam/deadline event category, keeping it visually distinct from ordinary study sessions (primary) and tasks (secondary) without introducing a third loud color.
+- **Graphite** (`#6366f1` light / `#a5b4fc` dark): reserved for the exam/deadline event category, used only as a dot and low-opacity tint, never as a fill for text or actions.
 
 ### Neutral
-- **Surface** (`#faf8ff` light / `#10131a` dark): page background.
-- **Surface Container Lowest** (`#ffffff` light / `#0b0e14` dark): cards, panels, modals, the sidebar — the "paper" layer that sits above the page background.
-- **Surface Container / Container High** (`#eaedff`, `#e2e7ff` light): pills, progress track background, hover states — one step up from paper, for elements nested inside a card.
-- **On-Surface** (`#131b2e` light / `#e0e2eb` dark): primary text.
-- **On-Surface Variant** (`#434655` light / `#c1c6d5` dark): secondary text, labels, muted metadata.
-- **Outline Variant** (`#c3c6d7` light / `#414753` dark): the 1px hairline used for every border in the system — cards, fields, table rows, dividers.
+- **Surface** (`#f0f4ff` light / `#0a0f1e` dark): page background.
+- **Surface Container Lowest** (`#ffffff` light / `#060a16` dark): cards, panels, modals, the sidebar — the "paper" layer that sits above the page background.
+- **Surface Container / Container High** (`#e4eafc`, `#d8e0f8` light): pills, progress track background, hover states — one step up from paper, for elements nested inside a card.
+- **On-Surface** (`#0c1225` light / `#dce4f5` dark): primary text.
+- **On-Surface Variant** (`#3d4663` light / `#94a3c8` dark): secondary text, labels, muted metadata.
+- **Outline Variant** (`#bcc5e0` light / `#2a3350` dark): the 1px hairline used for every border in the system — cards, fields, table rows, dividers.
 
 ### Semantic
-- **Success** (`#15803d` light / `#8fdba1` dark): income amounts, positive stat trends.
-- **Error** (`#ba1a1a` light / `#ffb4ab` dark): destructive actions, expense-negative flags, pending-review alerts.
+- **Success** (`#16a34a` light / `#86efac` dark, with `#166534` as the light-theme text-safe variant): income amounts, positive stat trends.
+- **Error** (`#dc2626` light / `#fca5a5` dark): destructive actions, expense-negative flags, pending-review alerts.
 
 ### Named Rules
 **The One-Accent Rule.** Ledger Blue is the only color allowed to signal "primary action" or "this is active." If a screen needs a second visually loud color, reach for a container tint (`*-container`) at low opacity before introducing a new hue.
@@ -200,15 +200,18 @@ Flat by default. Surfaces are separated by the 1px `outline-variant` hairline (s
 - **Corner Style:** 16px radius (`rounded.lg`).
 - **Background:** `surface-container-lowest` — the "paper" layer.
 - **Shadow Strategy:** none (see Elevation) — a 1px `outline-variant` border does the separation work instead.
-- **Internal Padding:** 24px (`spacing.xl`).
+- **Internal Padding:** 20px.
 
 ### Inputs / Fields
 - **Style:** 12px radius, 1px outline-variant border, `surface` background (one step darker than card background, so fields read as recessed relative to the card they sit in), 14px text.
 - **Focus:** no custom focus treatment currently defined beyond the browser default — a gap worth closing before shipping new forms (see Do's and Don'ts).
 
 ### Navigation
-- **Sidebar nav items:** transparent by default, on-surface-variant text; active item gets `secondary-container` background with Ledger Blue text — the one place secondary and primary colors combine. Collapses to icon-only at 84px width with a 0.25s width transition.
-- **Mobile nav:** a fixed bottom bar below 900px, same active/inactive color logic as the sidebar, icon-over-label instead of icon-beside-label.
+- **Sidebar nav items:** transparent by default, on-surface-variant text; active item gets `secondary-container` background with Ledger Blue text — the one place secondary and primary colors combine. Fixed 232px frame sidebar with the brand mark on top and the theme toggle pinned to the bottom; it does not collapse.
+- **Mobile nav:** a fixed bottom bar at 899px and below (the sidebar is replaced by a slim top bar with brand and theme toggle), same active/inactive color logic as the sidebar, icon-over-label instead of icon-beside-label.
+
+### Charts, Rings and Stat Cards
+Built once in `js/charts.js` and styled by `.chart-*`, `.bar-*`, `.mini-*`, `.ring-*` in `css/style.css`. Income is Ledger Blue, expense is Slate (mixed toward the surface in dark); the diverging bars put income above and expense below a zero line, so position, not hue, carries the distinction. Budget rings turn error-red past 100%. Stat cards are plain `card`s with a 13px label, a 24px value (30px for the balance), a trend line whose colour reflects good or bad (not up or down), and a 32px round link to the related page.
 
 ### Timetable / Calendar Event Blocks
 Category color is carried by a 30%-opacity tint of the matching `*-container` color (`color-mix(in srgb, var(--color-primary-container) 30%, transparent)`) plus a small leading color dot next to the time — never a border-left stripe (see Do's and Don'ts). Recurring events get a full 1px dashed outline instead of a solid one.

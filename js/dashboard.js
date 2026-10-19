@@ -6,10 +6,22 @@ const Dashboard = (() => {
   let selectedDate = new Date();
   selectedDate.setHours(0, 0, 0, 0);
 
-  const mobileQuery = window.matchMedia('(max-width: 900px)');
+  const mobileQuery = window.matchMedia('(max-width: 899px)');
   const isMobile = () => mobileQuery.matches;
 
-  const statGrid = document.getElementById('dash-stat-grid');
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const EVENT_COLOR = {
+    session: 'var(--color-primary)',
+    exam: 'var(--color-tertiary)',
+    deadline: 'var(--color-tertiary)',
+    task: 'var(--color-secondary)',
+  };
+
+  const statsEl = document.getElementById('dash-stats');
+  const chartEl = document.getElementById('dash-chart');
+  const chartScroll = document.getElementById('dash-chart-scroll');
+  const rangeSelect = document.getElementById('dash-range');
   const weekLabel = document.getElementById('dash-week-label');
   const head = document.getElementById('dash-timetable-head');
   const body = document.getElementById('dash-timetable-body');
@@ -17,6 +29,12 @@ const Dashboard = (() => {
   const viewWeekBtn = document.getElementById('dash-view-week');
   const prevBtn = document.getElementById('dash-prev-week');
   const nextBtn = document.getElementById('dash-next-week');
+
+  // Last fetched data, so changing the range re-renders without another round trip.
+  let transactions = [];
+  let goal = null;
+  let transactionsLoaded = false;
+  let range = Number(rangeSelect.value);
 
   prevBtn.addEventListener('click', () => {
     selectedDate = App.addDays(selectedDate, isMobile() ? -1 : -7);
@@ -27,44 +45,311 @@ const Dashboard = (() => {
     load();
   });
   mobileQuery.addEventListener('change', load);
+  rangeSelect.addEventListener('change', () => {
+    range = Number(rangeSelect.value);
+    renderOverview();
+  });
 
   function minutesOf(hhmm) {
     const [h, m] = hhmm.split(':').map(Number);
     return h * 60 + m;
   }
 
-  async function fetchStats() {
-    const { data, error } = await sb.from('transactions').select('type, amount');
-    if (error) throw error;
-    let income = 0;
-    let expense = 0;
-    for (const t of data) {
-      if (t.type === 'income') income += Number(t.amount);
-      else expense += Number(t.amount);
-    }
-    return { income, expense };
+  function h(tag, cls, text) {
+    return Charts.html(tag, cls, text);
   }
 
-  function renderStats({ income, expense }) {
-    const balance = income - expense;
-    statGrid.innerHTML = `
-      <div class="card">
-        <div class="card-top-row"><span class="pill">Current</span></div>
-        <p class="stat-label">Total Balance</p>
-        <p class="stat-value">${App.currency(balance)}</p>
-        <div class="stat-foot ${balance >= 0 ? 'up' : 'down'}">${balance >= 0 ? 'Positive' : 'Negative'} across all recorded transactions</div>
-      </div>
-      <div class="card">
-        <p class="stat-label">Total Income</p>
-        <p class="stat-value">${App.currency(income)}</p>
-        <div class="stat-foot up">Across all recorded transactions</div>
-      </div>
-      <div class="card">
-        <p class="stat-label">Total Expenses</p>
-        <p class="stat-value">${App.currency(expense)}</p>
-        <div class="stat-foot down">Across all recorded transactions</div>
-      </div>
-    `;
+  function dateLabel(d) {
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  }
+
+  // --- Data ---
+
+  async function fetchTransactions() {
+    const { data, error } = await sb.from('transactions').select('type, amount, category, date');
+    if (error) throw error;
+    return data;
+  }
+
+  async function fetchBudgets() {
+    const { data, error } = await sb.from('budgets').select('category, monthly_limit').order('category');
+    if (error) throw error;
+    return data;
+  }
+
+  async function fetchSubscriptions() {
+    const { data, error } = await sb.from('subscriptions').select('name, amount, billing_day').order('id');
+    if (error) throw error;
+    return data;
+  }
+
+  async function fetchGoal() {
+    const { data, error } = await sb.from('savings_goal').select('label, target_amount, current_amount').eq('id', 1).maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+
+  const UPCOMING_DAYS = 14;
+  const UPCOMING_MAX = 5;
+
+  async function fetchUpcoming() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const end = App.addDays(today, UPCOMING_DAYS);
+    const { data, error } = await sb
+      .from('events')
+      .select('id, title, type, date, start_time')
+      .gte('date', App.toISO(today))
+      .lte('date', App.toISO(end));
+    if (error) throw error;
+    const recurring = await fetchRecurringOccurrences(today, end);
+    const now = new Date();
+    const todayISO = App.toISO(now);
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    return data.concat(recurring)
+      .filter((e) => e.date > todayISO || !e.start_time || minutesOf(e.start_time) >= nowMinutes)
+      .sort((a, b) => a.date.localeCompare(b.date) || (a.start_time || '').localeCompare(b.start_time || ''))
+      .slice(0, UPCOMING_MAX);
+  }
+
+  // --- Spending overview: chart + stat cards ---
+
+  function dailyRows(count, endOffset) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const rows = Array.from({ length: count }, (_, i) => {
+      const d = App.addDays(today, -(count - 1 - i) - endOffset);
+      return { iso: App.toISO(d), label: dateLabel(d), weekday: (d.getDay() + 6) % 7, income: 0, expense: 0 };
+    });
+    const byDate = Object.fromEntries(rows.map((r) => [r.iso, r]));
+    for (const t of transactions) {
+      const row = byDate[t.date];
+      if (!row) continue;
+      if (t.type === 'income') row.income += Number(t.amount);
+      else row.expense += Number(t.amount);
+    }
+    return rows;
+  }
+
+  const total = (rows, key) => rows.reduce((t, r) => t + r[key], 0);
+
+  const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+  const TREND_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+
+  // dir: 'up' | 'down' (arrow); tone: 'good' | 'bad' | '' (colour). Spending going up is bad, income going up is good.
+  function trend(dir, tone, label) {
+    const t = h('div', `trend${tone ? ` trend-${tone}` : ''}${dir === 'down' ? ' trend-down' : ''}`);
+    if (dir) t.insertAdjacentHTML('beforeend', TREND_ARROW);
+    t.appendChild(h('span', null, label));
+    return t;
+  }
+
+  // Compares two period totals; `higherIsGood` decides the colour, not the arrow.
+  function periodTrend(now, prev, higherIsGood, suffix) {
+    if (!prev) return trend(null, '', `No prior data ${suffix}`.trim());
+    const p = ((now - prev) / prev) * 100;
+    const up = p >= 0;
+    const tone = Math.abs(p) < 0.05 ? '' : (up === higherIsGood ? 'good' : 'bad');
+    return trend(up ? 'up' : 'down', tone, `${up ? '+' : '\u2212'}${Math.abs(p).toFixed(1)}% ${suffix}`);
+  }
+
+  function statCard(label, valueText, cls) {
+    const card = h('article', `card stat${cls ? ` ${cls}` : ''}`);
+    const link = h('button', 'card-link');
+    link.type = 'button';
+    link.dataset.nav = 'finances';
+    link.setAttribute('aria-label', `Open Finances (${label})`);
+    link.innerHTML = ARROW;
+    card.appendChild(link);
+    card.appendChild(h('div', 'stat-label', label));
+    if (valueText != null) card.appendChild(h('div', `stat-value${cls && cls.includes('stat-big') ? ' stat-big' : ''}`, valueText));
+    return card;
+  }
+
+  function renderStats(rows, prevRows) {
+    const inc = total(rows, 'income');
+    const exp = total(rows, 'expense');
+    const prevInc = total(prevRows, 'income');
+    const prevExp = total(prevRows, 'expense');
+    const prevLabel = `vs prior ${range} days`;
+    const net = inc - exp;
+
+    let allIncome = 0;
+    let allExpense = 0;
+    for (const t of transactions) {
+      if (t.type === 'income') allIncome += Number(t.amount);
+      else allExpense += Number(t.amount);
+    }
+    const balance = allIncome - allExpense;
+
+    statsEl.replaceChildren();
+
+    const bal = statCard('Balance', App.currency(balance), 'stat-big');
+    bal.appendChild(trend(net >= 0 ? 'up' : 'down', net >= 0 ? 'good' : 'bad',
+      `${net >= 0 ? '+' : '\u2212'}${App.currency(Math.abs(net))} net, ${range}d`));
+    statsEl.appendChild(bal);
+
+    // Average spend per day, with the average for each weekday in the selected range.
+    const sums = Array(7).fill(0);
+    const counts = Array(7).fill(0);
+    rows.forEach((r) => { sums[r.weekday] += r.expense; counts[r.weekday] += 1; });
+    const weekdayAvg = sums.map((v, i) => (counts[i] ? v / counts[i] : 0));
+    const avgCard = statCard('Avg daily spend', App.currency(exp / range), 'stat-mini');
+    const avgTrend = periodTrend(exp, prevExp, false, prevLabel);
+    avgTrend.classList.add('trend-flush');
+    avgCard.appendChild(avgTrend);
+    Charts.miniBars(avgCard, weekdayAvg, WEEKDAYS, App.currency);
+    statsEl.appendChild(avgCard);
+
+    const incCard = statCard(`Income, ${range}d`, App.currency(inc));
+    incCard.appendChild(periodTrend(inc, prevInc, true, prevLabel));
+    statsEl.appendChild(incCard);
+
+    const expCard = statCard(`Expenses, ${range}d`, App.currency(exp));
+    expCard.appendChild(periodTrend(exp, prevExp, false, prevLabel));
+    statsEl.appendChild(expCard);
+
+    if (goal && Number(goal.target_amount) > 0) {
+      const pct = Math.min(100, Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100));
+      const goalCard = statCard('Savings goal', null);
+      const value = h('div', 'stat-value', App.currency(goal.current_amount));
+      value.appendChild(h('small', null, `of ${App.currency(goal.target_amount)}`));
+      goalCard.appendChild(value);
+      const track = h('div', 'track');
+      track.setAttribute('role', 'progressbar');
+      track.setAttribute('aria-label', `${goal.label} progress`);
+      track.setAttribute('aria-valuemin', '0');
+      track.setAttribute('aria-valuemax', '100');
+      track.setAttribute('aria-valuenow', String(pct));
+      const fill = h('div', 'track-fill');
+      fill.style.width = `${pct}%`;
+      track.appendChild(fill);
+      goalCard.appendChild(track);
+      goalCard.appendChild(h('div', 'trend', `${pct}% of ${goal.label}`));
+      statsEl.appendChild(goalCard);
+    }
+  }
+
+  function renderChart(rows) {
+    Charts.stackedBars(chartEl, rows, {
+      id: 'dash-chart-svg',
+      heading: `Income and expenses by day, last ${range} days`,
+      every: range <= 7 ? 1 : range <= 14 ? 2 : 3,
+      money: App.currency,
+    });
+    // On narrow screens the chart scrolls sideways; start at the most recent days.
+    chartScroll.scrollLeft = chartScroll.scrollWidth;
+  }
+
+  function renderOverview() {
+    if (!transactionsLoaded) return;
+    renderChart(dailyRows(range, 0));
+    renderStats(dailyRows(range, 0), dailyRows(range, range));
+  }
+
+  function renderOverviewError() {
+    const note = '<p class="empty-note">Could not load transactions.</p>';
+    chartEl.innerHTML = note;
+    statsEl.innerHTML = note;
+  }
+
+  // --- Side column: budgets, subscriptions, upcoming events ---
+
+  function renderBudgets(budgets) {
+    const card = document.getElementById('dash-budgets-card');
+    const month = App.toISO(new Date()).slice(0, 7);
+    const spentBy = {};
+    for (const t of transactions) {
+      if (t.type !== 'expense' || !t.date.startsWith(month)) continue;
+      const key = String(t.category || '').trim().toLowerCase();
+      spentBy[key] = (spentBy[key] || 0) + Number(t.amount);
+    }
+    const rows = budgets.filter((b) => Number(b.monthly_limit) > 0);
+    card.hidden = !rows.length;
+    const list = document.getElementById('dash-budgets');
+    list.replaceChildren(...rows.map((b) => {
+      const spent = spentBy[String(b.category).trim().toLowerCase()] || 0;
+      const p = spent / Number(b.monthly_limit);
+      const li = h('li', 'row');
+      li.appendChild(Charts.ring(56, 6, p, `${Math.round(p * 100)}%`));
+      const main = h('div', 'row-main');
+      main.appendChild(h('div', 'row-title', b.category));
+      main.appendChild(h('div', 'row-sub', `${App.currency(spent)} / ${App.currency(b.monthly_limit)}`));
+      li.appendChild(main);
+      return li;
+    }));
+  }
+
+  // Next date this billing day falls on (today counts); short months clamp to their last day.
+  function nextBilling(day) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const at = (y, m) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+    let d = at(today.getFullYear(), today.getMonth());
+    if (d < today) d = at(today.getFullYear(), today.getMonth() + 1);
+    return d;
+  }
+
+  function renderSubs(subs) {
+    const card = document.getElementById('dash-subs-card');
+    card.hidden = !subs.length;
+    const list = document.getElementById('dash-subs');
+    const monthly = subs.reduce((t, s) => t + Number(s.amount), 0);
+    const items = subs.map((s) => ({ name: s.name, amount: Number(s.amount), next: nextBilling(s.billing_day) }));
+    const featured = items.slice().sort((a, b) => b.amount - a.amount).slice(0, 2);
+    const rest = items.filter((s) => !featured.includes(s)).sort((a, b) => a.next - b.next);
+
+    function row(s, isFeature) {
+      const li = h('li', `row${isFeature ? ' row-feature' : ''}`);
+      if (isFeature && monthly > 0) {
+        const share = s.amount / monthly;
+        li.appendChild(Charts.ring(44, 5, share, `${Math.round(share * 100)}%`));
+      }
+      const main = h('div', 'row-main');
+      main.appendChild(h('div', 'row-title', s.name));
+      main.appendChild(h('div', 'row-sub', `Next ${dateLabel(s.next)}`));
+      li.appendChild(main);
+      li.appendChild(h('div', 'row-amount', App.currency(s.amount)));
+      return li;
+    }
+    list.replaceChildren(...featured.map((s) => row(s, true)), ...rest.map((s) => row(s, false)));
+  }
+
+  function whenLabel(ev) {
+    const [y, m, d] = ev.date.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.round((date - today) / 86400000);
+    const day = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow'
+      : diff < 7 ? date.toLocaleDateString('en-US', { weekday: 'short' }) : dateLabel(date);
+    return ev.start_time ? `${day} ${ev.start_time.slice(0, 5)}` : day;
+  }
+
+  function renderUpcoming(events) {
+    const list = document.getElementById('dash-events');
+    if (!events.length) {
+      list.replaceChildren(h('li', 'rows-empty', `Nothing scheduled in the next ${UPCOMING_DAYS} days.`));
+      return;
+    }
+    list.replaceChildren(...events.map((ev) => {
+      const li = h('li', 'row row-event');
+      const dot = h('span', 'event-dot');
+      dot.setAttribute('aria-hidden', 'true');
+      dot.style.setProperty('--dot', EVENT_COLOR[ev.type] || EVENT_COLOR.session);
+      li.appendChild(dot);
+      const main = h('div', 'row-main');
+      main.appendChild(h('div', 'row-title', ev.title));
+      main.appendChild(h('div', 'row-sub', whenLabel(ev)));
+      li.appendChild(main);
+      return li;
+    }));
+  }
+
+  function renderGreeting() {
+    const hour = new Date().getHours();
+    const part = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+    document.getElementById('dash-greeting').textContent = `Good ${part}`;
   }
 
   async function fetchWeekEvents(weekStart, weekEnd) {
@@ -237,18 +522,36 @@ const Dashboard = (() => {
     const weekStart = App.startOfWeek(selectedDate);
     const weekEnd = App.addDays(weekStart, 6);
     pageEl.setAttribute('aria-busy', 'true');
+    renderGreeting();
+    // Each block loads independently so one failing table does not blank the rest.
+    const [txns, budgets, subs, goalRes, upcoming, week, recurring] = await Promise.allSettled([
+      fetchTransactions(),
+      fetchBudgets(),
+      fetchSubscriptions(),
+      fetchGoal(),
+      fetchUpcoming(),
+      fetchWeekEvents(weekStart, weekEnd),
+      fetchRecurringOccurrences(weekStart, weekEnd),
+    ]);
     try {
-      const [stats, events, recurring] = await Promise.all([
-        fetchStats(),
-        fetchWeekEvents(weekStart, weekEnd),
-        fetchRecurringOccurrences(weekStart, weekEnd),
-      ]);
-      renderStats(stats);
-      const allEvents = events.concat(recurring);
-      if (isMobile()) renderDayAgenda(selectedDate, allEvents);
-      else renderTimetable(weekStart, allEvents);
-    } catch (err) {
-      alert(err.message);
+      if (txns.status === 'fulfilled') {
+        transactions = txns.value;
+        transactionsLoaded = true;
+      }
+      if (goalRes.status === 'fulfilled') goal = goalRes.value;
+      if (transactionsLoaded) renderOverview();
+      else renderOverviewError();
+      if (txns.status === 'fulfilled' && budgets.status === 'fulfilled') renderBudgets(budgets.value);
+      if (subs.status === 'fulfilled') renderSubs(subs.value);
+      if (upcoming.status === 'fulfilled') renderUpcoming(upcoming.value);
+      if (week.status === 'fulfilled' && recurring.status === 'fulfilled') {
+        const allEvents = week.value.concat(recurring.value);
+        if (isMobile()) renderDayAgenda(selectedDate, allEvents);
+        else renderTimetable(weekStart, allEvents);
+      }
+      Charts.flushArcs();
+      const failed = [txns, budgets, subs, goalRes, upcoming, week, recurring].find((r) => r.status === 'rejected');
+      if (failed) alert(failed.reason && failed.reason.message ? failed.reason.message : String(failed.reason));
     } finally {
       pageEl.removeAttribute('aria-busy');
     }

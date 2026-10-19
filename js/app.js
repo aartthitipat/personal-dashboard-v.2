@@ -56,7 +56,6 @@ const App = {
       }
     });
   },
-  TYPE_LABEL: { session: 'Study', exam: 'Exam', deadline: 'Deadline', task: 'Task' },
   TYPE_CLASS: { session: 'session', exam: 'exam', deadline: 'deadline', task: 'task' },
 
   // Expands weekly class_schedule templates into concrete virtual occurrences
@@ -128,60 +127,55 @@ const App = {
 };
 
 // --- Theme ---
+// The saved choice is applied by an inline script in <head> before first paint;
+// this wires the toggles (sidebar + mobile top bar) and keeps their icons in sync.
 
 const THEME_ICONS = {
-  light: '<svg viewBox="0 0 24 24" fill="currentColor" width="19" height="19"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>',
-  dark: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
+  toDark: '<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true"><path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>',
+  toLight: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>',
 };
 
-const themeToggle = document.getElementById('theme-toggle');
+const themeToggles = document.querySelectorAll('.theme-toggle');
+
+function paintThemeToggles(dark) {
+  themeToggles.forEach((btn) => {
+    btn.innerHTML = (dark ? THEME_ICONS.toLight : THEME_ICONS.toDark)
+      + `<span class="theme-label">${dark ? 'Light mode' : 'Dark mode'}</span>`;
+    btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  });
+}
 
 function applyTheme(dark) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-  themeToggle.innerHTML = dark ? THEME_ICONS.light : THEME_ICONS.dark;
-  localStorage.setItem('dashboard-theme', dark ? 'dark' : 'light');
+  paintThemeToggles(dark);
+  try { localStorage.setItem('dashboard-theme', dark ? 'dark' : 'light'); } catch { /* storage unavailable */ }
 }
 
-themeToggle.addEventListener('click', () => {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  applyTheme(!isDark);
+themeToggles.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    applyTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
+  });
 });
 
-applyTheme(localStorage.getItem('dashboard-theme') === 'dark');
-
-// --- Sidebar collapse ---
-
-const CHEVRON_ICONS = {
-  left: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>',
-  right: '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>',
-};
-
-const sidebar = document.getElementById('sidebar');
-const sidebarCollapseToggle = document.getElementById('sidebar-collapse-toggle');
-
-function applySidebarCollapsed(collapsed) {
-  sidebar.classList.toggle('collapsed', collapsed);
-  sidebarCollapseToggle.innerHTML = collapsed ? CHEVRON_ICONS.right : CHEVRON_ICONS.left;
-  sidebarCollapseToggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
-  localStorage.setItem('dashboard-sidebar-collapsed', collapsed ? '1' : '0');
-}
-
-sidebarCollapseToggle.addEventListener('click', () => {
-  applySidebarCollapsed(!sidebar.classList.contains('collapsed'));
-});
-
-applySidebarCollapsed(localStorage.getItem('dashboard-sidebar-collapsed') === '1');
+paintThemeToggles(document.documentElement.getAttribute('data-theme') === 'dark');
 
 // --- Navigation ---
 
 const pages = document.querySelectorAll('.page');
-const navButtons = document.querySelectorAll('.nav-item');
+const navButtons = document.querySelectorAll('.nav-item[data-nav]');
 let currentPage = 'dashboard';
 
 function goPage(name) {
   currentPage = name;
   pages.forEach((p) => p.classList.toggle('active', p.id === `page-${name}`));
-  navButtons.forEach((b) => b.classList.toggle('active', b.dataset.nav === name));
+  navButtons.forEach((b) => {
+    const on = b.dataset.nav === name;
+    b.classList.toggle('active', on);
+    if (on) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+  document.getElementById('app-main').scrollTop = 0;
+  window.scrollTo(0, 0);
   if (name === 'dashboard') Dashboard.load();
   if (name === 'finances') Finances.load();
   if (name === 'calendar') Calendar.load();
@@ -190,11 +184,11 @@ function goPage(name) {
   if (name === 'checklist') Checklist.load();
 }
 
-document.querySelectorAll('[data-nav]').forEach((el) => {
-  el.addEventListener('click', () => goPage(el.dataset.nav));
+// Delegated so buttons rendered later (e.g. dashboard card links) can navigate too.
+document.addEventListener('click', (e) => {
+  const target = e.target.closest('[data-nav]');
+  if (target) goPage(target.dataset.nav);
 });
-
-document.getElementById('dash-go-calendar').addEventListener('click', () => goPage('calendar'));
 
 // --- Shared "create event" modal (used by Dashboard FAB + Calendar) ---
 

@@ -4,6 +4,7 @@ const Checklist = (() => {
   const pageEl = document.getElementById('page-checklist');
   const addWrap = document.getElementById('cl-add-wrap');
   const addForm = document.getElementById('cl-add-form');
+  const submitBtn = addForm.querySelector('.cl-add-submit');
   const listEl = document.getElementById('cl-list');
   const filtersEl = document.getElementById('cl-filters');
   const ringFill = document.getElementById('cl-ring-fill');
@@ -34,7 +35,7 @@ const Checklist = (() => {
     if (!btn) return;
     currentFilter = btn.dataset.filter;
     filtersEl.querySelectorAll('.cl-filter').forEach((b) => b.classList.toggle('active', b === btn));
-    render();
+    render({ animate: true });
   });
 
   // --- Clear completed (with animation) ---
@@ -55,8 +56,8 @@ const Checklist = (() => {
     await new Promise((r) => setTimeout(r, 350 + items.length * 50));
     const ids = done.map((t) => t.id);
     const { error } = await sb.from('checklist').delete().in('id', ids);
-    if (error) return alert(error.message);
-    load();
+    if (error) alert(error.message);
+    load(); // on error this also brings back the rows hidden by cl-removing
   });
 
   // --- Add task ---
@@ -72,26 +73,43 @@ const Checklist = (() => {
       done: false,
       position: tasks.length,
     };
-    const { error } = await sb.from('checklist').insert(payload);
-    if (error) return alert(error.message);
-    addForm.reset();
-    load();
+    submitBtn.disabled = true; // a double-click would otherwise insert twice
+    try {
+      const { error } = await sb.from('checklist').insert(payload);
+      if (error) return alert(error.message);
+      addForm.reset();
+      load();
+    } finally {
+      submitBtn.disabled = false;
+    }
   });
 
   // --- Toggle done (with optimistic UI) ---
 
+  function hiddenByFilter(t) {
+    return (currentFilter === 'active' && t.done) || (currentFilter === 'done' && !t.done);
+  }
+
+  // Patch one row in place so the rest of the list doesn't replay its entrance animation.
+  function applyDone(task) {
+    const el = listEl.querySelector(`.cl-item[data-id="${task.id}"]`);
+    if (!el || hiddenByFilter(task)) return render();
+    el.classList.toggle('cl-done', task.done);
+    el.innerHTML = rowInner(task, { pop: task.done });
+    updateSummary();
+  }
+
   async function toggleDone(id, done) {
-    // Optimistic: update local immediately for snappy feel
     const task = tasks.find((t) => t.id === id);
-    if (task) task.done = done;
-    render();
+    if (!task) return;
+    task.done = done;
+    applyDone(task);
 
     const { error } = await sb.from('checklist').update({ done }).eq('id', id);
     if (error) {
       alert(error.message);
-      // Revert on error
-      if (task) task.done = !done;
-      render();
+      task.done = !done;
+      applyDone(task);
     }
   }
 
@@ -104,8 +122,8 @@ const Checklist = (() => {
       await new Promise((r) => setTimeout(r, 300));
     }
     const { error } = await sb.from('checklist').delete().eq('id', id);
-    if (error) return alert(error.message);
-    load();
+    if (error) alert(error.message);
+    load(); // on error this also brings back the row hidden by cl-removing
   }
 
   // --- Helpers ---
@@ -139,35 +157,50 @@ const Checklist = (() => {
     return d < today;
   }
 
-  // --- Update progress ring ---
+  // --- Update progress ring + filter counts ---
 
-  function updateRing(total, done) {
+  function updateSummary() {
+    const total = tasks.length;
+    const done = tasks.filter((t) => t.done).length;
     const pct = total ? Math.round((done / total) * 100) : 0;
     const offset = CIRCUMFERENCE - (pct / 100) * CIRCUMFERENCE;
     ringFill.style.strokeDashoffset = offset;
     ringPct.textContent = `${pct}%`;
     ringDetail.textContent = `${done} of ${total} task${total !== 1 ? 's' : ''} done`;
 
-    // Update filter counts
-    const active = total - done;
     document.getElementById('cl-count-all').textContent = total;
-    document.getElementById('cl-count-active').textContent = active;
+    document.getElementById('cl-count-active').textContent = total - done;
     document.getElementById('cl-count-done').textContent = done;
   }
 
   // --- Render ---
 
-  function render() {
-    const filtered = tasks.filter((t) => {
-      if (currentFilter === 'active') return !t.done;
-      if (currentFilter === 'done') return t.done;
-      return true;
-    });
+  const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke="currentColor" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+  const DUE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="12" height="12"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>';
 
-    // Update ring + counts
-    const total = tasks.length;
-    const done = tasks.filter((t) => t.done).length;
-    updateRing(total, done);
+  // pop: play the check animation, only for the row the user just ticked
+  function rowInner(t, { pop = false } = {}) {
+    const dueText = formatDue(t.due_date);
+    const overdue = !t.done && isDueOverdue(t.due_date);
+    return `
+      <button class="cl-checkbox ${t.done ? 'checked' : ''} ${pop ? 'cl-pop' : ''}" data-action="toggle" aria-label="${t.done ? 'Mark incomplete' : 'Mark complete'}">
+        ${t.done ? CHECK_ICON : ''}
+      </button>
+      <div class="cl-item-body">
+        <p class="cl-item-title">${App.escapeHtml(t.title)}</p>
+        <div class="cl-item-meta">
+          <span class="cl-priority-pill ${priorityClass(t.priority)}">${priorityLabel(t.priority)}</span>
+          ${dueText ? `<span class="cl-due ${overdue ? 'cl-overdue' : ''}">${DUE_ICON} ${dueText}</span>` : ''}
+        </div>
+      </div>
+      <button class="cl-delete" data-action="delete" aria-label="Delete task">&#10005;</button>
+    `;
+  }
+
+  // animate: staggered entrance, for a fresh load or a filter switch, not for edits
+  function render({ animate = false } = {}) {
+    updateSummary();
+    const filtered = tasks.filter((t) => !hiddenByFilter(t));
 
     // Empty state
     if (!filtered.length) {
@@ -181,42 +214,22 @@ const Checklist = (() => {
       return;
     }
 
-    // Task items with stagger delay
-    listEl.innerHTML = filtered.map((t, i) => {
-      const dueText = formatDue(t.due_date);
-      const overdue = !t.done && isDueOverdue(t.due_date);
-      const delay = `animation-delay: ${i * 0.04}s`;
-      const dueIcon = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="12" height="12"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>';
-      return `
-        <div class="cl-item ${t.done ? 'cl-done' : ''}" data-id="${t.id}" style="${delay}">
-          <button class="cl-checkbox ${t.done ? 'checked' : ''}" data-action="toggle" aria-label="${t.done ? 'Mark incomplete' : 'Mark complete'}">
-            ${t.done ? '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke="currentColor" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>' : ''}
-          </button>
-          <div class="cl-item-body">
-            <p class="cl-item-title">${App.escapeHtml(t.title)}</p>
-            <div class="cl-item-meta">
-              <span class="cl-priority-pill ${priorityClass(t.priority)}">${priorityLabel(t.priority)}</span>
-              ${dueText ? `<span class="cl-due ${overdue ? 'cl-overdue' : ''}">${dueIcon} ${dueText}</span>` : ''}
-            </div>
-          </div>
-          <button class="cl-delete" data-action="delete" aria-label="Delete task">&#10005;</button>
-        </div>
-      `;
-    }).join('');
-
-    // Bind events
-    listEl.querySelectorAll('[data-action="toggle"]').forEach((btn) => {
-      const item = btn.closest('.cl-item');
-      const t = tasks.find((x) => String(x.id) === item.dataset.id);
-      if (t) btn.addEventListener('click', () => toggleDone(t.id, !t.done));
-    });
-
-    listEl.querySelectorAll('[data-action="delete"]').forEach((btn) => {
-      const item = btn.closest('.cl-item');
-      const t = tasks.find((x) => String(x.id) === item.dataset.id);
-      if (t) btn.addEventListener('click', () => deleteTask(t.id));
-    });
+    listEl.innerHTML = filtered.map((t, i) => `
+      <div class="cl-item ${t.done ? 'cl-done' : ''} ${animate ? 'cl-enter' : ''}" data-id="${t.id}"${animate ? ` style="animation-delay: ${i * 0.04}s"` : ''}>
+        ${rowInner(t)}
+      </div>
+    `).join('');
   }
+
+  // One delegated listener, so re-rendering rows never needs to rebind events.
+  listEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const t = tasks.find((x) => String(x.id) === btn.closest('.cl-item').dataset.id);
+    if (!t) return;
+    if (btn.dataset.action === 'toggle') toggleDone(t.id, !t.done);
+    if (btn.dataset.action === 'delete') deleteTask(t.id);
+  });
 
   // --- Load ---
 
@@ -231,7 +244,7 @@ const Checklist = (() => {
         .order('created_at', { ascending: false });
       if (error) throw error;
       tasks = data || [];
-      render();
+      render({ animate: true });
     } catch (err) {
       alert(err.message);
     } finally {

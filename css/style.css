@@ -933,9 +933,9 @@ button.pill:hover { filter: brightness(0.95); transform: scale(1.03); }
   border: 1px solid var(--color-outline-variant);
   background: var(--color-surface-container-lowest);
   padding: 16px 18px;
-  animation: cl-fade-in-up 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
+.cl-item.cl-enter { animation: cl-fade-in-up 0.35s cubic-bezier(0.4, 0, 0.2, 1) backwards; }
 .cl-item:hover {
   background: var(--color-surface-container-low);
   transform: translateY(-2px);
@@ -968,8 +968,9 @@ button.pill:hover { filter: brightness(0.95); transform: scale(1.03); }
 }
 .cl-checkbox:hover { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 10%, transparent); transform: scale(1.1); }
 .cl-checkbox:active { transform: scale(0.9); }
-.cl-checkbox.checked { background: var(--color-primary); border-color: var(--color-primary); animation: cl-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.cl-checkbox.checked svg { stroke-dasharray: 24; stroke-dashoffset: 0; animation: cl-check-draw 0.3s ease 0.1s both; }
+.cl-checkbox.checked { background: var(--color-primary); border-color: var(--color-primary); }
+.cl-checkbox.checked.cl-pop { animation: cl-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.cl-checkbox.checked.cl-pop svg { stroke-dasharray: 24; stroke-dashoffset: 0; animation: cl-check-draw 0.3s ease 0.1s both; }
 
 .cl-item-body { flex: 1; min-width: 0; }
 .cl-item-title { margin: 0; font-size: 14px; font-weight: 500; color: var(--color-on-surface); transition: color 0.2s ease; }

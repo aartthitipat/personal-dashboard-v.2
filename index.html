@@ -42,6 +42,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
         <span class="nav-label">Websites</span>
       </button>
+      <button class="nav-item" data-nav="checklist" title="Checklist">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><rect x="3" y="3" width="18" height="18" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 7l2 2 4-4M9 14l2 2 4-4"/></svg>
+        <span class="nav-label">Checklist</span>
+      </button>
     </nav>
     <div class="sidebar-footer">Personal workspace &mdash; finances, calendar, and study, all in one place.</div>
   </aside>
@@ -66,6 +70,10 @@
     <button class="nav-item mobile-nav-item" data-nav="websites" title="Websites">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
       <span class="mobile-nav-label">Websites</span>
+    </button>
+    <button class="nav-item mobile-nav-item" data-nav="checklist" title="Checklist">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 7l2 2 4-4M9 14l2 2 4-4"/></svg>
+      <span class="mobile-nav-label">Checklist</span>
     </button>
   </nav>
 
@@ -128,7 +136,7 @@
             <button class="btn btn-secondary" id="fin-scan-slip">&#9635; Scan Slip</button>
             <button class="btn btn-secondary" id="fin-export">&darr; Export</button>
             <button class="btn btn-primary" id="fin-toggle-add">+ New Transaction</button>
-            <input type="file" id="fin-slip-input" accept="image/*" capture="environment" style="display:none;" aria-label="Payment slip photo">
+            <input type="file" id="fin-slip-input" accept="image/*" style="display:none;" aria-label="Payment slip photo">
           </div>
         </div>
 
@@ -279,6 +287,90 @@
         <div class="web-grid" id="web-grid"></div>
       </section>
 
+      <section class="page" id="page-checklist">
+        <div class="cl-hero">
+          <div class="cl-hero-text">
+            <h1>Checklist</h1>
+            <p>Track your tasks and to-dos.</p>
+          </div>
+          <div class="cl-hero-actions">
+            <button class="btn btn-secondary" id="cl-clear-done">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/></svg>
+              Clear Done
+            </button>
+            <button class="btn btn-primary" id="cl-toggle-add">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+              New Task
+            </button>
+          </div>
+        </div>
+
+        <div class="cl-add-wrap" id="cl-add-wrap">
+          <form class="cl-add-form" id="cl-add-form">
+            <div class="cl-add-main">
+              <input class="field cl-add-input" required placeholder="What needs to be done?" id="cl-task-title" aria-label="Task title" autocomplete="off">
+            </div>
+            <div class="cl-add-options">
+              <div class="cl-add-option">
+                <label class="cl-add-label" for="cl-task-priority">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m4 4v-8m4 8V9m4 12V5m4 16V3"/></svg>
+                  Priority
+                </label>
+                <select class="field" id="cl-task-priority" aria-label="Priority">
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              <div class="cl-add-option">
+                <label class="cl-add-label" for="cl-task-due">
+                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="14" height="14"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>
+                  Due date
+                </label>
+                <input class="field" type="date" id="cl-task-due" aria-label="Due date">
+              </div>
+              <button type="submit" class="btn btn-primary cl-add-submit">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                Add Task
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="cl-summary-row">
+          <div class="cl-ring-card" id="cl-ring-card">
+            <div class="cl-ring-wrap">
+              <svg class="cl-ring-svg" viewBox="0 0 80 80">
+                <circle class="cl-ring-bg" cx="40" cy="40" r="34" />
+                <circle class="cl-ring-fill" id="cl-ring-fill" cx="40" cy="40" r="34" />
+              </svg>
+              <span class="cl-ring-pct" id="cl-ring-pct">0%</span>
+            </div>
+            <div class="cl-ring-info">
+              <p class="cl-ring-label">Progress</p>
+              <p class="cl-ring-detail" id="cl-ring-detail">0 of 0 tasks done</p>
+            </div>
+          </div>
+
+          <div class="cl-filters" id="cl-filters">
+            <button class="cl-filter active" data-filter="all">
+              <span class="cl-filter-label">All</span>
+              <span class="cl-filter-count" id="cl-count-all">0</span>
+            </button>
+            <button class="cl-filter" data-filter="active">
+              <span class="cl-filter-label">Active</span>
+              <span class="cl-filter-count" id="cl-count-active">0</span>
+            </button>
+            <button class="cl-filter" data-filter="done">
+              <span class="cl-filter-label">Done</span>
+              <span class="cl-filter-count" id="cl-count-done">0</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="cl-list" id="cl-list"></div>
+      </section>
+
     </main>
   </div>
 
@@ -371,5 +463,6 @@
 <script src="js/calendar.js"></script>
 <script src="js/study.js"></script>
 <script src="js/websites.js"></script>
+<script src="js/checklist.js"></script>
 </body>
 </html>

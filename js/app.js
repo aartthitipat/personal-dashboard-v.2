@@ -187,6 +187,7 @@ function goPage(name) {
   if (name === 'calendar') Calendar.load();
   if (name === 'study') Study.load();
   if (name === 'websites') Websites.load();
+  if (name === 'checklist') Checklist.load();
 }
 
 document.querySelectorAll('[data-nav]').forEach((el) => {

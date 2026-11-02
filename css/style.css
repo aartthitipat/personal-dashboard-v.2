@@ -1004,6 +1004,15 @@ button.brand { cursor: pointer; border-radius: var(--radius-sm); }
 .cl-item:hover .cl-delete, .cl-delete:focus-visible { opacity: 1; }
 .cl-delete:hover { background: var(--color-error-container); color: var(--color-on-error-container); }
 
+.td-actions { display: flex; flex-shrink: 0; align-items: center; gap: var(--space-1); }
+.cl-item:hover .td-edit, .td-edit:focus-visible { opacity: 1; }
+.td-edit:hover { background: var(--color-surface-container-high); color: var(--color-on-surface); }
+.td-notes { margin-top: 2px; font: var(--type-caption); color: var(--color-on-surface-variant); white-space: pre-wrap; overflow-wrap: anywhere; }
+.td-category { display: inline-flex; align-items: center; border-radius: var(--radius-pill); padding: 2px 10px; font: var(--type-caption); font-weight: 500; background: var(--color-primary-container); color: var(--color-on-primary-container); }
+.td-category-filter { width: auto; min-width: 160px; }
+#td-form textarea.field { resize: vertical; min-height: 72px; }
+@media (hover: none) { .cl-delete { opacity: 1; } }
+
 @media (prefers-reduced-motion: no-preference) {
   .ui-dialog[open] { animation: sheet-in 200ms var(--ease-out) both; }
   .ui-dialog[open]::backdrop { animation: fade-in 160ms linear both; }

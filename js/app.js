@@ -293,6 +293,7 @@ const PAGE_TITLES = {
   study: 'Study',
   websites: 'Websites',
   checklist: 'Checklist',
+  todo: 'To Do',
 };
 
 function goPage(name, moveFocus) {
@@ -320,6 +321,7 @@ function goPage(name, moveFocus) {
   if (name === 'study') Study.load();
   if (name === 'websites') Websites.load();
   if (name === 'checklist') Checklist.load();
+  if (name === 'todo') Todo.load();
 }
 
 document.addEventListener('click', (e) => {

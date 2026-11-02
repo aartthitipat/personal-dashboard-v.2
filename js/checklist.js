@@ -1,66 +1,64 @@
 const Checklist = (() => {
-  const CIRCUMFERENCE = 2 * Math.PI * 34; // matches SVG circle r=34
+  const CIRCUMFERENCE = 2 * Math.PI * 34;
+  const DUE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="12" height="12" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>';
+  const TICK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke="currentColor" width="14" height="14" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
+  const LIST_ICON = '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 7l2 2 4-4M9 14l2 2 4-4"/>';
+  const CHECK_ICON = '<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>';
 
   const pageEl = document.getElementById('page-checklist');
   const addWrap = document.getElementById('cl-add-wrap');
   const addForm = document.getElementById('cl-add-form');
-  const submitBtn = addForm.querySelector('.cl-add-submit');
   const listEl = document.getElementById('cl-list');
   const filtersEl = document.getElementById('cl-filters');
   const ringFill = document.getElementById('cl-ring-fill');
   const ringPct = document.getElementById('cl-ring-pct');
   const ringDetail = document.getElementById('cl-ring-detail');
+  const toggleBtn = document.getElementById('cl-toggle-add');
 
   let tasks = [];
   let currentFilter = 'all';
-  let formOpen = false;
 
-  // --- Toggle add-form (slide animation via CSS grid-template-rows) ---
+  function setFormOpen(open) {
+    App.setDisclosure(addWrap, toggleBtn, open, open);
+  }
 
-  const toggleBtn = document.getElementById('cl-toggle-add');
   toggleBtn.addEventListener('click', () => {
-    formOpen = !formOpen;
-    addWrap.classList.toggle('open', formOpen);
-    toggleBtn.querySelector('svg').style.transform = formOpen ? 'rotate(45deg)' : '';
-    toggleBtn.querySelector('svg').style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-    if (formOpen) {
-      setTimeout(() => document.getElementById('cl-task-title').focus(), 300);
-    }
+    setFormOpen(!addWrap.classList.contains('open'));
   });
 
-  // --- Filter buttons ---
+  function setFilter(name) {
+    currentFilter = name;
+    filtersEl.querySelectorAll('.cl-filter').forEach((b) => {
+      const on = b.dataset.filter === name;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    render({ animate: true });
+  }
 
   filtersEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.cl-filter');
     if (!btn) return;
-    currentFilter = btn.dataset.filter;
-    filtersEl.querySelectorAll('.cl-filter').forEach((b) => b.classList.toggle('active', b === btn));
-    render({ animate: true });
+    setFilter(btn.dataset.filter);
   });
-
-  // --- Clear completed (with animation) ---
 
   document.getElementById('cl-clear-done').addEventListener('click', async () => {
     const done = tasks.filter((t) => t.done);
     if (!done.length) return;
-    if (!confirm(`Delete ${done.length} completed task(s)?`)) return;
+    if (!await ui.confirm(`Delete ${done.length} completed task(s)?`, { title: 'Clear completed tasks', confirmLabel: 'Delete', danger: true })) return;
 
-    // Animate out visually first
     const items = listEl.querySelectorAll('.cl-item.cl-done');
     items.forEach((el, i) => {
       el.style.animationDelay = `${i * 0.05}s`;
       el.classList.add('cl-removing');
     });
 
-    // Wait for animation then delete
-    await new Promise((r) => setTimeout(r, 350 + items.length * 50));
+    await new Promise((r) => setTimeout(r, 250 + items.length * 50));
     const ids = done.map((t) => t.id);
     const { error } = await sb.from('checklist').delete().in('id', ids);
-    if (error) alert(error.message);
-    load(); // on error this also brings back the rows hidden by cl-removing
+    if (error) return ui.alert(error.message, { title: 'Something went wrong' });
+    load();
   });
-
-  // --- Add task ---
 
   addForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -73,60 +71,39 @@ const Checklist = (() => {
       done: false,
       position: tasks.length,
     };
-    submitBtn.disabled = true; // a double-click would otherwise insert twice
-    try {
-      const { error } = await sb.from('checklist').insert(payload);
-      if (error) return alert(error.message);
-      addForm.reset();
-      load();
-    } finally {
-      submitBtn.disabled = false;
-    }
+    const { error } = await sb.from('checklist').insert(payload);
+    if (error) return ui.alert(error.message, { title: 'Something went wrong' });
+    addForm.reset();
+    document.getElementById('cl-task-title').focus();
+    load();
   });
-
-  // --- Toggle done (with optimistic UI) ---
-
-  function hiddenByFilter(t) {
-    return (currentFilter === 'active' && t.done) || (currentFilter === 'done' && !t.done);
-  }
-
-  // Patch one row in place so the rest of the list doesn't replay its entrance animation.
-  function applyDone(task) {
-    const el = listEl.querySelector(`.cl-item[data-id="${task.id}"]`);
-    if (!el || hiddenByFilter(task)) return render();
-    el.classList.toggle('cl-done', task.done);
-    el.innerHTML = rowInner(task, { pop: task.done });
-    updateSummary();
-  }
 
   async function toggleDone(id, done) {
     const task = tasks.find((t) => t.id === id);
-    if (!task) return;
-    task.done = done;
-    applyDone(task);
+    if (task) task.done = done;
+    render({ focusId: id });
 
     const { error } = await sb.from('checklist').update({ done }).eq('id', id);
     if (error) {
-      alert(error.message);
-      task.done = !done;
-      applyDone(task);
+      if (task) task.done = !done;
+      render({ focusId: id });
+      ui.toast(error.message, { kind: 'error' });
     }
   }
-
-  // --- Delete task (with animation) ---
 
   async function deleteTask(id) {
     const el = listEl.querySelector(`.cl-item[data-id="${id}"]`);
     if (el) {
       el.classList.add('cl-removing');
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 200));
     }
     const { error } = await sb.from('checklist').delete().eq('id', id);
-    if (error) alert(error.message);
-    load(); // on error this also brings back the row hidden by cl-removing
+    if (error) {
+      if (el) el.classList.remove('cl-removing');
+      return ui.alert(error.message, { title: 'Something went wrong' });
+    }
+    load();
   }
-
-  // --- Helpers ---
 
   function priorityLabel(p) {
     return { high: 'High', medium: 'Medium', low: 'Low' }[p] || 'Medium';
@@ -157,81 +134,87 @@ const Checklist = (() => {
     return d < today;
   }
 
-  // --- Update progress ring + filter counts ---
-
-  function updateSummary() {
-    const total = tasks.length;
-    const done = tasks.filter((t) => t.done).length;
+  function updateRing(total, done) {
     const pct = total ? Math.round((done / total) * 100) : 0;
     const offset = CIRCUMFERENCE - (pct / 100) * CIRCUMFERENCE;
     ringFill.style.strokeDashoffset = offset;
     ringPct.textContent = `${pct}%`;
     ringDetail.textContent = `${done} of ${total} task${total !== 1 ? 's' : ''} done`;
 
+    const active = total - done;
     document.getElementById('cl-count-all').textContent = total;
-    document.getElementById('cl-count-active').textContent = total - done;
+    document.getElementById('cl-count-active').textContent = active;
     document.getElementById('cl-count-done').textContent = done;
   }
 
-  // --- Render ---
-
-  const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="2.8" stroke="currentColor" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>';
-  const DUE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="12" height="12"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>';
-
-  // pop: play the check animation, only for the row the user just ticked
-  function rowInner(t, { pop = false } = {}) {
-    const dueText = formatDue(t.due_date);
-    const overdue = !t.done && isDueOverdue(t.due_date);
-    return `
-      <button class="cl-checkbox ${t.done ? 'checked' : ''} ${pop ? 'cl-pop' : ''}" data-action="toggle" aria-label="${t.done ? 'Mark incomplete' : 'Mark complete'}">
-        ${t.done ? CHECK_ICON : ''}
-      </button>
-      <div class="cl-item-body">
-        <p class="cl-item-title">${App.escapeHtml(t.title)}</p>
-        <div class="cl-item-meta">
-          <span class="cl-priority-pill ${priorityClass(t.priority)}">${priorityLabel(t.priority)}</span>
-          ${dueText ? `<span class="cl-due ${overdue ? 'cl-overdue' : ''}">${DUE_ICON} ${dueText}</span>` : ''}
-        </div>
-      </div>
-      <button class="cl-delete" data-action="delete" aria-label="Delete task">&#10005;</button>
-    `;
+  function renderEmpty() {
+    const config = {
+      all: [LIST_ICON, 'No tasks yet', 'Add your first task to start tracking what needs doing.', 'New task'],
+      active: [CHECK_ICON, 'Nothing left to do', 'Every task is done. Add a new one when something comes up.', 'Show all tasks'],
+      done: [CHECK_ICON, 'No completed tasks', 'Tasks you tick off will collect here.', 'Show all tasks'],
+    }[currentFilter];
+    listEl.innerHTML = App.emptyState(...config);
+    listEl.querySelector('[data-empty-action]').addEventListener('click', () => {
+      if (currentFilter === 'all') {
+        setFormOpen(true);
+      } else {
+        setFilter('all');
+      }
+    });
   }
 
-  // animate: staggered entrance, for a fresh load or a filter switch, not for edits
-  function render({ animate = false } = {}) {
-    updateSummary();
-    const filtered = tasks.filter((t) => !hiddenByFilter(t));
+  function render(opts = {}) {
+    const { animate = false, focusId = null } = opts;
+    const filtered = tasks.filter((t) => {
+      if (currentFilter === 'active') return !t.done;
+      if (currentFilter === 'done') return t.done;
+      return true;
+    });
 
-    // Empty state
+    const total = tasks.length;
+    const done = tasks.filter((t) => t.done).length;
+    updateRing(total, done);
+
     if (!filtered.length) {
-      const icon = currentFilter === 'active'
-        ? '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="currentColor" width="40" height="40"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
-        : '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="currentColor" width="40" height="40"><rect x="3" y="3" width="18" height="18" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 7l2 2 4-4M9 14l2 2 4-4"/></svg>';
-      const msg = currentFilter === 'done' ? 'No completed tasks yet.'
-        : currentFilter === 'active' ? 'All tasks done! Great job! 🎉'
-        : 'No tasks yet — tap "New Task" to get started.';
-      listEl.innerHTML = `<div class="cl-empty">${icon}<p>${msg}</p></div>`;
+      renderEmpty();
       return;
     }
 
-    listEl.innerHTML = filtered.map((t, i) => `
-      <div class="cl-item ${t.done ? 'cl-done' : ''} ${animate ? 'cl-enter' : ''}" data-id="${t.id}"${animate ? ` style="animation-delay: ${i * 0.04}s"` : ''}>
-        ${rowInner(t)}
-      </div>
-    `).join('');
+    listEl.innerHTML = filtered.map((t, i) => {
+      const dueText = formatDue(t.due_date);
+      const overdue = !t.done && isDueOverdue(t.due_date);
+      return `
+        <div class="cl-item ${t.done ? 'cl-done' : ''} ${animate ? 'cl-enter' : ''}" data-id="${t.id}" style="--i:${Math.min(i, 12)}">
+          <button type="button" class="cl-checkbox ${t.done ? 'checked' : ''}" data-action="toggle" role="checkbox" aria-checked="${t.done}" aria-label="${App.escapeHtml(t.title)}">${t.done ? TICK_ICON : ''}</button>
+          <div class="cl-item-body">
+            <p class="cl-item-title">${App.escapeHtml(t.title)}</p>
+            <div class="cl-item-meta">
+              <span class="cl-priority-pill ${priorityClass(t.priority)}">${priorityLabel(t.priority)}</span>
+              ${dueText ? `<span class="cl-due ${overdue ? 'cl-overdue' : ''}">${DUE_ICON} ${dueText}</span>` : ''}
+            </div>
+          </div>
+          <button type="button" class="cl-delete" data-action="delete" aria-label="Delete ${App.escapeHtml(t.title)}">&#10005;</button>
+        </div>
+      `;
+    }).join('');
+
+    listEl.querySelectorAll('[data-action="toggle"]').forEach((btn) => {
+      const item = btn.closest('.cl-item');
+      const t = tasks.find((x) => String(x.id) === item.dataset.id);
+      if (t) btn.addEventListener('click', () => toggleDone(t.id, !t.done));
+    });
+
+    listEl.querySelectorAll('[data-action="delete"]').forEach((btn) => {
+      const item = btn.closest('.cl-item');
+      const t = tasks.find((x) => String(x.id) === item.dataset.id);
+      if (t) btn.addEventListener('click', () => deleteTask(t.id));
+    });
+
+    if (focusId != null) {
+      const again = listEl.querySelector(`.cl-item[data-id="${focusId}"] [data-action="toggle"]`);
+      if (again) again.focus({ preventScroll: true });
+    }
   }
-
-  // One delegated listener, so re-rendering rows never needs to rebind events.
-  listEl.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const t = tasks.find((x) => String(x.id) === btn.closest('.cl-item').dataset.id);
-    if (!t) return;
-    if (btn.dataset.action === 'toggle') toggleDone(t.id, !t.done);
-    if (btn.dataset.action === 'delete') deleteTask(t.id);
-  });
-
-  // --- Load ---
 
   async function load() {
     pageEl.setAttribute('aria-busy', 'true');
@@ -246,7 +229,7 @@ const Checklist = (() => {
       tasks = data || [];
       render({ animate: true });
     } catch (err) {
-      alert(err.message);
+      ui.alert(err.message, { title: 'Something went wrong' });
     } finally {
       pageEl.removeAttribute('aria-busy');
     }

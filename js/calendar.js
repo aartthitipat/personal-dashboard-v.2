@@ -8,9 +8,127 @@ const Calendar = (() => {
 
   weekdayRow.innerHTML = WEEKDAY_LABELS.map((w) => `<div>${w}</div>`).join('');
 
-  // --- Grouped "Study" popover: a day's recurring class occurrences render as
-  // one pill instead of one per class; clicking it reveals the group name and
-  // every class scheduled that day.
+  const narrowQuery = window.matchMedia('(max-width: 899px)');
+  const agendaDayTitleEl = document.getElementById('cal-agenda-day-title');
+  const agendaDayEl = document.getElementById('cal-agenda-day');
+  const agendaMonthEl = document.getElementById('cal-agenda-month');
+  const agendaAddBtn = document.getElementById('cal-agenda-add');
+  const agendaEl = document.getElementById('cal-agenda');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let selectedISO = null;
+  let current = null;
+
+  function longDate(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  }
+
+  function byTime(a, b) {
+    return (a.start_time || '99:99').localeCompare(b.start_time || '99:99');
+  }
+
+  function agendaItem(ev) {
+    const cls = App.TYPE_CLASS[ev.type] || 'session';
+    const time = ev.start_time ? `${ev.start_time.slice(0, 5)}${ev.end_time ? ` - ${ev.end_time.slice(0, 5)}` : ''}` : 'All day';
+    const label = `${ev.title}, ${longDate(ev.date)}, ${time}${ev.recurring ? ', weekly class, opens cancel option' : ''}`;
+    return `
+      <li>
+        <button type="button" class="cal-agenda-item ev-${cls}${ev.recurring ? ' recurring' : ''}" data-id="${ev.id}" aria-label="${App.escapeHtml(label)}">
+          <span class="cal-agenda-time">${time}</span>
+          <span class="cal-agenda-name">${App.escapeHtml(ev.title)}</span>
+          ${ev.location ? `<span class="cal-agenda-loc">${App.escapeHtml(ev.location)}</span>` : ''}
+        </button>
+      </li>
+    `;
+  }
+
+  function renderAgenda() {
+    if (!current) return;
+    const { monthDate, events } = current;
+    const dayEvents = events.filter((e) => e.date === selectedISO).sort(byTime);
+    agendaDayTitleEl.textContent = longDate(selectedISO);
+    agendaDayEl.innerHTML = dayEvents.length
+      ? dayEvents.map(agendaItem).join('')
+      : '<li class="cal-agenda-empty">Nothing scheduled on this day.</li>';
+
+    const monthKey = `${monthDate.getFullYear()}-${App.pad(monthDate.getMonth() + 1)}`;
+    const inMonth = events.filter((e) => e.date.startsWith(monthKey)).sort((a, b) => a.date.localeCompare(b.date) || byTime(a, b));
+    if (!inMonth.length) {
+      agendaMonthEl.innerHTML = '<p class="cal-agenda-empty">No events this month.</p>';
+    } else {
+      const dates = Array.from(new Set(inMonth.map((e) => e.date)));
+      agendaMonthEl.innerHTML = dates.map((iso, i) => `
+        <h3 class="cal-agenda-date${iso === selectedISO ? ' selected' : ''}" id="cal-agenda-date-${i}">${longDate(iso)}</h3>
+        <ul class="cal-agenda-list" aria-labelledby="cal-agenda-date-${i}">${inMonth.filter((e) => e.date === iso).map(agendaItem).join('')}</ul>
+      `).join('');
+    }
+
+    [agendaDayEl, agendaMonthEl].forEach((host) => {
+      host.querySelectorAll('.cal-agenda-item').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const ev = events.find((x) => String(x.id) === btn.dataset.id);
+          if (!ev) return;
+          if (ev.recurring) {
+            const cancelled = await App.cancelClassOccurrence(ev.schedule_id, ev.date, ev.title);
+            if (cancelled) load();
+          } else {
+            openEventModal(ev.date, ev);
+          }
+        });
+      });
+    });
+  }
+
+  function paintSelection() {
+    cellsEl.querySelectorAll('.month-cell').forEach((cell) => {
+      const on = narrowQuery.matches && cell.dataset.date === selectedISO;
+      cell.classList.toggle('selected', on);
+      if (narrowQuery.matches) cell.setAttribute('aria-pressed', String(on));
+      else cell.removeAttribute('aria-pressed');
+      cell.setAttribute('aria-label', narrowQuery.matches ? `Show events for ${longDate(cell.dataset.date)}` : `Create event on ${longDate(cell.dataset.date)}`);
+    });
+  }
+
+  function setRoving(target) {
+    cellsEl.querySelectorAll('.month-cell').forEach((cell) => {
+      cell.tabIndex = cell === target ? 0 : -1;
+    });
+  }
+
+  function onCellKeydown(e) {
+    const cell = e.currentTarget;
+    if (e.target !== cell) return;
+    const cells = Array.from(cellsEl.querySelectorAll('.month-cell'));
+    const idx = cells.indexOf(cell);
+    const row = idx - (idx % 7);
+    const moves = {
+      ArrowLeft: idx - 1,
+      ArrowRight: idx + 1,
+      ArrowUp: idx - 7,
+      ArrowDown: idx + 7,
+      Home: row,
+      End: row + 6,
+    };
+    if (!(e.key in moves)) return;
+    const next = cells[moves[e.key]];
+    e.preventDefault();
+    if (!next) return;
+    setRoving(next);
+    next.focus();
+  }
+
+  function selectDay(iso) {
+    selectedISO = iso;
+    paintSelection();
+    renderAgenda();
+    agendaEl.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  agendaAddBtn.addEventListener('click', () => openEventModal(selectedISO));
+  narrowQuery.addEventListener('change', () => {
+    paintSelection();
+  });
+
 
   const popoverEl = document.getElementById('cal-class-popover');
   const popoverTitleEl = document.getElementById('cal-class-popover-title');
@@ -100,6 +218,11 @@ const Calendar = (() => {
   function render(monthDate, events) {
     const today = new Date();
     const todayISO = App.toISO(today);
+    current = { monthDate, events };
+    const monthPrefix = `${monthDate.getFullYear()}-${App.pad(monthDate.getMonth() + 1)}`;
+    if (!selectedISO || !selectedISO.startsWith(monthPrefix)) {
+      selectedISO = todayISO.startsWith(monthPrefix) ? todayISO : `${monthPrefix}-01`;
+    }
     monthLabelEl.textContent = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     const gridStart = App.startOfMonthGrid(monthDate);
@@ -114,14 +237,14 @@ const Calendar = (() => {
       const otherEvents = dayEvents.filter((e) => !e.recurring);
 
       const groupPill = classEvents.length
-        ? `<span class="event-pill session class-group-pill" data-date="${iso}" aria-haspopup="true" aria-expanded="false" aria-label="Study, ${classEvents.length} class${classEvents.length > 1 ? 'es' : ''} on ${iso}">Study${classEvents.length > 1 ? ` (${classEvents.length})` : ''}</span>`
+        ? `<span class="event-pill session class-group-pill" data-date="${iso}" aria-haspopup="true" aria-expanded="false" aria-label="Study, ${classEvents.length} class${classEvents.length > 1 ? 'es' : ''} on ${longDate(iso)}">Study${classEvents.length > 1 ? ` (${classEvents.length})` : ''}</span>`
         : '';
       const otherPills = otherEvents.map((ev) => {
         const cls = App.TYPE_CLASS[ev.type] || 'session';
         return `<span class="event-pill ${cls}" data-id="${ev.id}" title="${App.escapeHtml(ev.title)}" aria-label="${App.escapeHtml(ev.title)}">${App.escapeHtml(ev.title)}</span>`;
       }).join('');
       return `
-        <div class="month-cell ${isToday ? 'today' : ''} ${inMonth ? '' : 'out-of-month'}" data-date="${iso}" aria-label="Create event on ${iso}">
+        <div class="month-cell ${isToday ? 'today' : ''} ${inMonth ? '' : 'out-of-month'}" data-date="${iso}" aria-label="Create event on ${longDate(iso)}">
           <span class="num ${isToday ? 'today' : ''}">${d.getDate()}</span>
           <div class="month-cell-events">${groupPill}${otherPills}</div>
         </div>
@@ -129,9 +252,17 @@ const Calendar = (() => {
     }).join('');
 
     cellsEl.querySelectorAll('.month-cell').forEach((cell) => {
-      cell.addEventListener('click', () => openEventModal(cell.dataset.date));
+      cell.addEventListener('click', () => {
+        if (narrowQuery.matches) selectDay(cell.dataset.date);
+        else openEventModal(cell.dataset.date);
+      });
       App.bindActivate(cell);
+      cell.addEventListener('keydown', onCellKeydown);
+      cell.addEventListener('focus', () => setRoving(cell));
     });
+    setRoving(cellsEl.querySelector(`.month-cell[data-date="${selectedISO}"]`) || cellsEl.querySelector('.month-cell'));
+    paintSelection();
+    renderAgenda();
 
     cellsEl.querySelectorAll('.class-group-pill').forEach((pill) => {
       pill.addEventListener('click', (e) => {
@@ -175,7 +306,7 @@ const Calendar = (() => {
       ]);
       render(monthDate, events.concat(recurring));
     } catch (err) {
-      alert(err.message);
+      ui.alert(err.message, { title: 'Something went wrong' });
     } finally {
       pageEl.removeAttribute('aria-busy');
     }

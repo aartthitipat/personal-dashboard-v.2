@@ -1,6 +1,9 @@
 const Finances = (() => {
   const CATEGORIES = ['Food & Drink', 'Groceries', 'Housing', 'Education', 'Transport', 'Subscriptions', 'Salary', 'Refund', 'Other'];
 
+  const SCAN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M4 8V6a2 2 0 012-2h2M16 4h2a2 2 0 012 2v2M20 16v2a2 2 0 01-2 2h-2M8 20H6a2 2 0 01-2-2v-2M7 12h10"/></svg>';
+  const RECEIPT_ICON = '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/>';
+
   let managingSubs = false;
   let editingGoal = false;
   let editingSubId = null;
@@ -9,11 +12,13 @@ const Finances = (() => {
   let savingsGoal = null;
 
   const txnForm = document.getElementById('fin-txn-form');
+  const txnWrap = document.getElementById('fin-txn-wrap');
   const txnCategorySelect = document.getElementById('fin-txn-category');
   const toggleAddBtn = document.getElementById('fin-toggle-add');
   const goalView = document.getElementById('fin-goal-view');
   const goalForm = document.getElementById('fin-goal-form');
   const subForm = document.getElementById('fin-sub-form');
+  const subWrap = document.getElementById('fin-sub-wrap');
   const manageSubsBtn = document.getElementById('fin-manage-subs');
   const subCancelBtn = document.getElementById('fin-sub-cancel');
   const subSubmitBtn = document.getElementById('fin-sub-submit-btn');
@@ -21,15 +26,26 @@ const Finances = (() => {
   txnCategorySelect.innerHTML = CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('');
   document.getElementById('fin-txn-date').value = App.toISO(new Date());
 
+  function setTxnFormOpen(open) {
+    App.setDisclosure(txnWrap, toggleAddBtn, open, open);
+  }
+
   toggleAddBtn.addEventListener('click', () => {
-    txnForm.style.display = txnForm.style.display === 'none' ? 'grid' : 'none';
+    setTxnFormOpen(!txnWrap.classList.contains('open'));
   });
 
   txnForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const vendor = document.getElementById('fin-txn-vendor').value.trim();
+    const vendorField = document.getElementById('fin-txn-vendor');
+    const vendor = vendorField.value.trim();
     const amount = document.getElementById('fin-txn-amount').value;
-    if (!vendor || !amount) return;
+    if (!vendor) {
+      vendorField.value = '';
+      vendorField.reportValidity();
+      vendorField.focus();
+      return;
+    }
+    if (!amount) return;
     const { error } = await sb.from('transactions').insert({
       type: document.getElementById('fin-txn-type').value,
       amount: Number(amount),
@@ -38,14 +54,13 @@ const Finances = (() => {
       date: document.getElementById('fin-txn-date').value,
       status: 'completed',
     });
-    if (error) return alert(error.message);
+    if (error) return ui.alert(error.message);
     txnForm.reset();
     document.getElementById('fin-txn-date').value = App.toISO(new Date());
-    txnForm.style.display = 'none';
+    setTxnFormOpen(false);
+    toggleAddBtn.focus();
     await load();
   });
-
-  // --- Scan Slip: photo -> slip-scan Edge Function (Gemini vision) -> confirm modal ---
 
   const scanBtn = document.getElementById('fin-scan-slip');
   const slipInput = document.getElementById('fin-slip-input');
@@ -53,19 +68,16 @@ const Finances = (() => {
   const slipForm = document.getElementById('slip-form');
   const slipSaveBtn = document.getElementById('slip-save-btn');
 
-  // Confidence comes from the model, not the form, so it rides alongside the
-  // editable fields until save.
   let pendingConfidence = null;
 
   document.getElementById('slip-category').innerHTML = CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('');
 
   function setScanBusy(busy) {
     scanBtn.disabled = busy;
-    scanBtn.textContent = busy ? 'Scanning…' : '▣ Scan Slip';
+    scanBtn.innerHTML = `${SCAN_ICON}${busy ? 'Scanning…' : 'Scan Slip'}`;
   }
+  setScanBusy(false);
 
-  // Re-encodes any browser-decodable image (incl. iOS HEIC) to a small JPEG so
-  // phone photos don't ship multi-MB base64 payloads to the Edge Function.
   async function downscaleImage(file) {
     const bitmap = await createImageBitmap(file);
     const scale = Math.min(1, 1280 / Math.max(bitmap.width, bitmap.height));
@@ -112,10 +124,10 @@ const Finances = (() => {
         body: { image: base64, mimeType: 'image/jpeg' },
       });
       if (error) throw error;
-      if (!data.ok) return alert(SCAN_FAIL_MESSAGES[data.reason] || data.message);
+      if (!data.ok) return await ui.alert(SCAN_FAIL_MESSAGES[data.reason] || data.message, { title: 'Scan Slip' });
       openSlipModal(data.slip, dataUrl);
     } catch (err) {
-      alert(`Could not read that image. Try a JPEG/PNG photo of the slip. (${err.message})`);
+      await ui.alert(`Could not read that image. Try a JPEG/PNG photo of the slip. (${err.message})`, { title: 'Scan Slip' });
     } finally {
       setScanBusy(false);
       slipInput.value = '';
@@ -134,18 +146,26 @@ const Finances = (() => {
 
   slipForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const slipVendorField = document.getElementById('slip-vendor');
+    const slipVendor = slipVendorField.value.trim();
+    if (!slipVendor) {
+      slipVendorField.value = '';
+      slipVendorField.reportValidity();
+      slipVendorField.focus();
+      return;
+    }
     slipSaveBtn.disabled = true;
     try {
       const { error } = await sb.from('transactions').insert({
         type: 'expense',
         amount: Number(document.getElementById('slip-amount').value),
-        vendor: document.getElementById('slip-vendor').value.trim(),
+        vendor: slipVendor,
         category: document.getElementById('slip-category').value,
         date: document.getElementById('slip-date').value,
         status: 'completed',
         confidence: pendingConfidence,
       });
-      if (error) return alert(error.message);
+      if (error) return await ui.alert(error.message);
       closeSlipModal();
       await load();
     } finally {
@@ -167,16 +187,19 @@ const Finances = (() => {
   });
 
   document.getElementById('fin-goal-edit-btn').addEventListener('click', () => {
+    if (!savingsGoal) return;
     editingGoal = true;
     document.getElementById('fin-goal-label').value = savingsGoal.label;
     document.getElementById('fin-goal-target-input').value = savingsGoal.target_amount;
     document.getElementById('fin-goal-current-input').value = savingsGoal.current_amount;
     renderGoal();
+    document.getElementById('fin-goal-label').focus();
   });
 
   document.getElementById('fin-goal-cancel').addEventListener('click', () => {
     editingGoal = false;
     renderGoal();
+    document.getElementById('fin-goal-edit-btn').focus();
   });
 
   goalForm.addEventListener('submit', async (e) => {
@@ -185,25 +208,30 @@ const Finances = (() => {
     const target_amount = Number(document.getElementById('fin-goal-target-input').value);
     const current_amount = Number(document.getElementById('fin-goal-current-input').value) || 0;
     const { error } = await sb.from('savings_goal').update({ label, target_amount, current_amount }).eq('id', 1);
-    if (error) return alert(error.message);
+    if (error) return ui.alert(error.message);
     editingGoal = false;
     await load();
   });
 
   function openSubForm(s) {
     editingSubId = s ? s.id : null;
-    subCancelBtn.style.display = s ? '' : 'none';
+    subCancelBtn.hidden = !s;
     subSubmitBtn.textContent = s ? 'Save Subscription' : 'Add Subscription';
     document.getElementById('fin-sub-name').value = s ? s.name : '';
     document.getElementById('fin-sub-plan').value = s ? (s.plan || '') : '';
     document.getElementById('fin-sub-amount').value = s ? s.amount : '';
     document.getElementById('fin-sub-billing-day').value = s ? s.billing_day : '';
+    subForm.querySelectorAll('.field[aria-invalid]').forEach((f) => {
+      f.removeAttribute('aria-invalid');
+      f.removeAttribute('aria-describedby');
+    });
+    subForm.querySelectorAll('.field-help').forEach((n) => n.remove());
   }
 
   manageSubsBtn.addEventListener('click', () => {
     managingSubs = !managingSubs;
     openSubForm(null);
-    subForm.style.display = managingSubs ? 'grid' : 'none';
+    App.setDisclosure(subWrap, manageSubsBtn, managingSubs, managingSubs);
     manageSubsBtn.textContent = managingSubs ? 'Done' : 'Manage Subscriptions';
     renderSubs();
   });
@@ -225,47 +253,50 @@ const Finances = (() => {
     const { error } = editingSubId
       ? await sb.from('subscriptions').update(payload).eq('id', editingSubId)
       : await sb.from('subscriptions').insert(payload);
-    if (error) return alert(error.message);
+    if (error) return ui.alert(error.message);
     openSubForm(null);
     await load();
   });
 
   async function deleteSub(id) {
     const { error } = await sb.from('subscriptions').delete().eq('id', id);
-    if (error) return alert(error.message);
+    if (error) return ui.alert(error.message);
     await load();
   }
 
   async function deleteTxn(id) {
-    if (!confirm('Delete this transaction?')) return;
+    if (!(await ui.confirm('Delete this transaction?', { title: 'Delete transaction', confirmLabel: 'Delete', cancelLabel: 'Cancel', danger: true }))) return;
     const { error } = await sb.from('transactions').delete().eq('id', id);
-    if (error) return alert(error.message);
+    if (error) return ui.alert(error.message);
     await load();
   }
 
   async function confirmPending(id) {
     const { error } = await sb.from('transactions').update({ status: 'completed' }).eq('id', id);
-    if (error) return alert(error.message);
+    if (error) return ui.alert(error.message);
     await load();
   }
 
   function renderGoal() {
-    goalView.style.display = editingGoal ? 'none' : 'block';
-    goalForm.style.display = editingGoal ? 'flex' : 'none';
+    goalView.hidden = editingGoal;
+    goalForm.hidden = !editingGoal;
     if (editingGoal || !savingsGoal) return;
     const pct = Math.min(100, Math.round((savingsGoal.current_amount / savingsGoal.target_amount) * 100 || 0));
-    document.getElementById('fin-goal-edit-btn').textContent = savingsGoal.label;
+    const sameName = savingsGoal.label.trim().toLowerCase() === 'savings goal';
+    document.getElementById('fin-goal-name').textContent = sameName ? 'Savings goal' : `Savings goal · ${savingsGoal.label}`;
+    document.getElementById('fin-goal-edit-btn').setAttribute('aria-label', `Edit savings goal ${savingsGoal.label}`);
     document.getElementById('fin-goal-current').textContent = App.currency(savingsGoal.current_amount);
     document.getElementById('fin-goal-target').textContent = App.currency(savingsGoal.target_amount);
-    document.getElementById('fin-goal-bar').style.width = `${pct}%`;
+    document.getElementById('fin-goal-bar').style.setProperty('--p', pct / 100);
+    document.getElementById('fin-goal-track').setAttribute('aria-valuenow', String(pct));
     document.getElementById('fin-goal-pct').textContent = `${pct}%`;
   }
 
   function renderPending() {
     const pending = transactions.filter((t) => t.status === 'pending_review');
     const total = pending.reduce((a, t) => a + Number(t.amount), 0);
-    document.getElementById('fin-pending-flag').style.display = pending.length ? 'inline-block' : 'none';
-    document.getElementById('fin-pending-count').textContent = `${pending.length} Items`;
+    document.getElementById('fin-pending-flag').hidden = !pending.length;
+    document.getElementById('fin-pending-count').textContent = `${pending.length} ${pending.length === 1 ? 'item' : 'items'}`;
     document.getElementById('fin-pending-amount').textContent = App.currency(total);
 
     const list = document.getElementById('fin-pending-list');
@@ -280,8 +311,8 @@ const Finances = (() => {
           <p class="pending-row-meta">${App.escapeHtml(t.type)} &middot; ${App.currency(t.amount)}</p>
         </div>
         <div class="pending-row-actions">
-          <button class="btn-confirm" data-id="${t.id}">Confirm</button>
-          <button class="btn-decline" data-id="${t.id}">Delete</button>
+          <button type="button" class="btn-confirm" data-id="${t.id}" aria-label="Confirm ${App.escapeHtml(t.vendor)}">Confirm</button>
+          <button type="button" class="btn-decline" data-id="${t.id}" aria-label="Delete ${App.escapeHtml(t.vendor)}">Delete</button>
         </div>
       </div>
     `).join('');
@@ -294,56 +325,41 @@ const Finances = (() => {
   }
 
   function renderChart() {
-    const svg = document.getElementById('fin-chart');
     const now = new Date();
     const months = Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      return { key: `${d.getFullYear()}-${App.pad(d.getMonth() + 1)}`, label: d.toLocaleDateString('en-US', { month: 'short' }), income: 0, expense: 0 };
+      return {
+        key: `${d.getFullYear()}-${App.pad(d.getMonth() + 1)}`,
+        label: d.toLocaleDateString('en-US', { month: 'short' }),
+        income: 0,
+        expense: 0,
+      };
     });
     const byKey = Object.fromEntries(months.map((m) => [m.key, m]));
     for (const t of transactions) {
-      const key = t.date.slice(0, 7);
-      const bucket = byKey[key];
+      const bucket = byKey[t.date.slice(0, 7)];
       if (!bucket) continue;
       if (t.type === 'income') bucket.income += Number(t.amount);
       else bucket.expense += Number(t.amount);
     }
-
-    const chartW = 560;
-    const plotBottom = 230;
-    const plotTop = 20;
-    const maxVal = Math.max(...months.flatMap((m) => [m.income, m.expense]), 1);
-    const groupW = chartW / months.length;
-    const barW = groupW * 0.32;
-
-    const gridLines = [0, 1, 2, 3, 4].map((i) => {
-      const y = plotTop + (i * (plotBottom - plotTop)) / 4;
-      return `<line x1="0" x2="${chartW}" y1="${y}" y2="${y}" stroke="var(--color-outline-variant)" stroke-dasharray="3 3"></line>`;
-    }).join('');
-
-    const bars = months.map((m, i) => {
-      const groupX = i * groupW + groupW * 0.15;
-      const incomeH = (m.income / maxVal) * (plotBottom - plotTop);
-      const expenseH = (m.expense / maxVal) * (plotBottom - plotTop);
-      const incomeX = groupX;
-      const expenseX = groupX + barW + 6;
-      const labelX = groupX + barW + 3;
-      return `
-        <rect x="${incomeX}" y="${plotBottom - incomeH}" width="${barW}" height="${incomeH}" rx="3" fill="var(--color-success)"></rect>
-        <rect x="${expenseX}" y="${plotBottom - expenseH}" width="${barW}" height="${expenseH}" rx="3" fill="var(--color-error)"></rect>
-        <text x="${labelX}" y="248" font-size="12" fill="var(--color-on-surface-variant)" text-anchor="middle">${m.label}</text>
-      `;
-    }).join('');
-
-    svg.innerHTML = gridLines + bars;
+    Charts.stackedBars(document.getElementById('fin-chart'), months, {
+      id: 'fin-chart-svg',
+      heading: 'Monthly income and expenses, last 6 months',
+      every: 1,
+      money: App.currency,
+    });
   }
 
   function renderSubs() {
     const list = document.getElementById('fin-sub-list');
+    if (!subscriptions.length) {
+      list.innerHTML = '<p class="pending-empty">No subscriptions yet. Use Manage Subscriptions to add one.</p>';
+      return;
+    }
     list.innerHTML = subscriptions.map((s) => `
       <div class="sub-row">
         <div class="sub-left">
-          <span class="sub-avatar">${App.escapeHtml(s.name.charAt(0).toUpperCase())}</span>
+          <span class="sub-avatar" aria-hidden="true">${App.escapeHtml(s.name.charAt(0).toUpperCase())}</span>
           <div>
             <p class="sub-name">${App.escapeHtml(s.name)}</p>
             <p class="sub-plan">${App.escapeHtml(s.plan || '')}${s.plan ? ' &middot; ' : ''}Bills on day ${s.billing_day}</p>
@@ -351,14 +367,17 @@ const Finances = (() => {
         </div>
         <div class="sub-right">
           <span class="sub-amount">${App.currency(s.amount)}</span>
-          ${managingSubs ? `<button class="btn-link-danger" data-action="edit" data-id="${s.id}" style="color:var(--color-primary);">Edit</button><button class="btn-link-danger" data-action="delete" data-id="${s.id}">Remove</button>` : ''}
+          ${managingSubs ? `<button type="button" class="btn-link" data-action="edit" data-id="${s.id}" aria-label="Edit ${App.escapeHtml(s.name)}">Edit</button><button type="button" class="btn-link-danger" data-action="delete" data-id="${s.id}" aria-label="Remove ${App.escapeHtml(s.name)}">Remove</button>` : ''}
         </div>
       </div>
     `).join('');
     list.querySelectorAll('[data-action="edit"]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const s = subscriptions.find((x) => String(x.id) === btn.dataset.id);
-        if (s) openSubForm(s);
+        if (s) {
+          openSubForm(s);
+          document.getElementById('fin-sub-name').focus();
+        }
       });
     });
     list.querySelectorAll('[data-action="delete"]').forEach((btn) => {
@@ -368,19 +387,43 @@ const Finances = (() => {
 
   function renderTxnTable() {
     const rows = document.getElementById('fin-txn-rows');
-    rows.innerHTML = transactions.map((t) => `
-      <tr>
-        <td>${App.escapeHtml(t.vendor)}</td>
-        <td><span class="pill">${App.escapeHtml(t.category)}</span></td>
-        <td class="muted">${new Date(`${t.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}</td>
-        <td class="muted">${t.status === 'completed' ? 'Completed' : 'Pending'}</td>
-        <td class="amount ${t.type === 'income' ? 'income' : ''}">${t.type === 'income' ? '+' : '-'}${App.currency(t.amount)}</td>
-        <td class="delete-cell"><button class="btn-link-danger" data-id="${t.id}">Delete</button></td>
+    const foot = document.getElementById('fin-txn-foot');
+    const empty = document.getElementById('fin-txn-empty');
+    const scroll = document.querySelector('.txn-scroll');
+    scroll.hidden = !transactions.length;
+    empty.hidden = !!transactions.length;
+    if (!transactions.length) {
+      empty.innerHTML = App.emptyState(RECEIPT_ICON, 'No transactions yet', 'Record your first income or expense to start the ledger.', 'New transaction');
+      empty.querySelector('[data-empty-action]').addEventListener('click', () => setTxnFormOpen(true));
+      rows.innerHTML = '';
+      foot.innerHTML = '';
+      return;
+    }
+    rows.innerHTML = transactions.map((t) => {
+      const income = t.type === 'income';
+      const done = t.status === 'completed';
+      return `
+      <tr role="row">
+        <td role="cell" class="cell-vendor">${App.escapeHtml(t.vendor)}</td>
+        <td role="cell" class="cell-cat"><span class="pill">${App.escapeHtml(t.category)}</span></td>
+        <td role="cell" class="cell-date muted">${new Date(`${t.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}</td>
+        <td role="cell" class="cell-status"><span class="pill pill-dot ${done ? 'pill-success' : 'pill-error'}">${done ? 'Completed' : 'Pending review'}</span></td>
+        <td role="cell" class="amount ${income ? 'income' : ''}">${App.signedCurrency(income ? Number(t.amount) : -Number(t.amount))}</td>
+        <td role="cell" class="delete-cell"><button type="button" class="btn-link-danger" data-id="${t.id}" aria-label="Delete transaction ${App.escapeHtml(t.vendor)}">Delete</button></td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
     rows.querySelectorAll('.btn-link-danger').forEach((btn) => {
       btn.addEventListener('click', () => deleteTxn(btn.dataset.id));
     });
+    const net = transactions.reduce((a, t) => a + (t.type === 'income' ? Number(t.amount) : -Number(t.amount)), 0);
+    foot.innerHTML = `
+      <tr role="row">
+        <td role="cell" colspan="4" class="muted">Net total · ${transactions.length} ${transactions.length === 1 ? 'transaction' : 'transactions'}</td>
+        <td role="cell" class="amount ${net >= 0 ? 'income' : ''}">${App.signedCurrency(net)}</td>
+        <td role="cell" class="foot-pad"></td>
+      </tr>
+    `;
   }
 
   function renderBalance() {
@@ -389,47 +432,20 @@ const Finances = (() => {
     document.getElementById('fin-total-balance').textContent = App.currency(income - expense);
   }
 
-  function daysInMonth(year, monthIndex) {
-    return new Date(year, monthIndex + 1, 0).getDate();
-  }
-
-  function nextDueDate(billingDay, lastChargedOn, today) {
-    // Start searching from the month after the last charge, or the current month if never charged.
-    // A 1-indexed month number from the date string doubles as "next month" when passed as Date's 0-indexed month.
-    const [year, month] = lastChargedOn
-      ? lastChargedOn.split('-').map(Number)
-      : [today.getFullYear(), today.getMonth()];
-    const dim = daysInMonth(year, month);
-    return billingDay <= dim
-      ? new Date(year, month, billingDay)
-      : new Date(year, month + 1, 1);
-  }
-
-  // Guards against overlapping runs (e.g. a double nav-click firing Finances.load()
-  // twice) racing on the same stale last_charged_on and both inserting a charge.
   let chargeInFlight = null;
 
   async function chargeDueSubscriptions() {
     if (chargeInFlight) return chargeInFlight;
     chargeInFlight = (async () => {
-      const { data: subs, error } = await sb.from('subscriptions').select('id, name, amount, billing_day, last_charged_on');
-      if (error || !subs) return;
-      const today = new Date();
-      const todayISO = App.toISO(today);
-      for (const s of subs) {
-        if (nextDueDate(s.billing_day, s.last_charged_on, today) > today) continue;
-        // Posted as pending_review, not completed: same pattern as other machine-inserted
-        // transactions, so a mis-set billing day or a retroactive first charge needs the
-        // user's confirmation before it counts as real spend.
-        const { error: insErr } = await sb.from('transactions').insert({
-          type: 'expense', amount: s.amount, vendor: s.name, category: 'Subscriptions', date: todayISO, status: 'pending_review',
-        });
-        if (insErr) continue;
-        await sb.from('subscriptions').update({ last_charged_on: todayISO }).eq('id', s.id);
+      const { data, error } = await sb.rpc('charge_due_subscriptions', { p_today: App.toISO(new Date()) });
+      if (error) {
+        ui.toast(`Could not charge due subscriptions: ${error.message}`, { kind: 'error' });
+        return [];
       }
+      return data || [];
     })();
     try {
-      await chargeInFlight;
+      return await chargeInFlight;
     } finally {
       chargeInFlight = null;
     }
@@ -461,7 +477,7 @@ const Finances = (() => {
       renderSubs();
       renderTxnTable();
     } catch (err) {
-      alert(err.message);
+      await ui.alert(err.message);
     } finally {
       pageEl.removeAttribute('aria-busy');
     }

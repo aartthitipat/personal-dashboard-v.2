@@ -3,248 +3,395 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Personal finance, calendar and study dashboard">
 <title>Personal Dashboard</title>
+<script>
+  (function () {
+    var dark = false;
+    try { dark = localStorage.getItem('dashboard-theme') === 'dark'; } catch (e) {}
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<div class="app-shell">
+<a class="skip-link" href="#app-main">Skip to content</a>
+
+<div class="app-frame">
 
   <aside class="sidebar" id="sidebar">
-    <div class="brand-row">
-      <div class="brand" id="brand" data-nav="dashboard">
-        <div class="brand-name">Personal Dashboard</div>
-        <div class="brand-sub">Personal Workspace</div>
-      </div>
-      <button class="collapse-btn" id="sidebar-collapse-toggle" aria-label="Collapse sidebar"></button>
-    </div>
-    <nav class="nav" id="nav">
-      <button class="nav-item" data-nav="dashboard" title="Dashboard">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="19" height="19"><path d="M4 4h7v7H4V4zm9 0h7v4h-7V4zm0 7h7v9h-7v-9zM4 14h7v6H4v-6z"/></svg>
-        <span class="nav-label">Dashboard</span>
-      </button>
-      <button class="nav-item" data-nav="finances" title="Finances">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><rect x="3" y="6" width="18" height="13" rx="2"/><path stroke-linecap="round" d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4" fill="currentColor" stroke="none"/></svg>
-        <span class="nav-label">Finances</span>
-      </button>
-      <button class="nav-item" data-nav="calendar" title="Calendar">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>
-        <span class="nav-label">Calendar</span>
-      </button>
-      <button class="nav-item" data-nav="study" title="Study">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"/></svg>
-        <span class="nav-label">Study</span>
-      </button>
-      <button class="nav-item" data-nav="websites" title="Websites">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
-        <span class="nav-label">Websites</span>
-      </button>
-      <button class="nav-item" data-nav="checklist" title="Checklist">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="19" height="19"><rect x="3" y="3" width="18" height="18" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 7l2 2 4-4M9 14l2 2 4-4"/></svg>
-        <span class="nav-label">Checklist</span>
-      </button>
+    <button type="button" class="brand" data-nav="dashboard" aria-label="Personal Dashboard, go to Dashboard">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M4 4h7v7H4V4zm9 0h7v4h-7V4zm0 7h7v9h-7v-9zM4 14h7v6H4v-6z"/></svg></span>
+      <span class="brand-name">Personal Dashboard</span>
+    </button>
+
+    <nav class="side-nav" aria-label="Main">
+      <ul>
+        <li>
+          <button type="button" class="nav-item" data-nav="dashboard">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M4 4h7v7H4V4zm9 0h7v4h-7V4zm0 7h7v9h-7v-9zM4 14h7v6H4v-6z"/></svg>
+            <span>Dashboard</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="nav-item" data-nav="finances">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path stroke-linecap="round" d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4" fill="currentColor" stroke="none"/></svg>
+            <span>Finances</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="nav-item" data-nav="calendar">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>
+            <span>Calendar</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="nav-item" data-nav="study">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"/></svg>
+            <span>Study</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="nav-item" data-nav="websites">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
+            <span>Websites</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="nav-item" data-nav="checklist">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 7l2 2 4-4M9 14l2 2 4-4"/></svg>
+            <span>Checklist</span>
+          </button>
+        </li>
+      </ul>
     </nav>
-    <div class="sidebar-footer">Personal workspace &mdash; finances, calendar, and study, all in one place.</div>
+
+    <button type="button" class="theme-row theme-toggle side-theme" role="switch" aria-checked="false" aria-label="Dark mode"></button>
   </aside>
 
-  <nav class="mobile-nav" id="mobile-nav">
-    <button class="nav-item mobile-nav-item" data-nav="dashboard" title="Dashboard">
-      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M4 4h7v7H4V4zm9 0h7v4h-7V4zm0 7h7v9h-7v-9zM4 14h7v6H4v-6z"/></svg>
-      <span class="mobile-nav-label">Dashboard</span>
+  <header class="app-top">
+    <span class="brand">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M4 4h7v7H4V4zm9 0h7v4h-7V4zm0 7h7v9h-7v-9zM4 14h7v6H4v-6z"/></svg></span>
+      <span class="brand-name">Personal Dashboard</span>
+    </span>
+    <button type="button" class="icon-btn theme-toggle" aria-label="Switch to dark mode"></button>
+  </header>
+
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Main">
+    <button type="button" class="nav-item" data-nav="dashboard">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M4 4h7v7H4V4zm9 0h7v4h-7V4zm0 7h7v9h-7v-9zM4 14h7v6H4v-6z"/></svg>
+      <span>Dashboard</span>
     </button>
-    <button class="nav-item mobile-nav-item" data-nav="finances" title="Finances">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20"><rect x="3" y="6" width="18" height="13" rx="2"/><path stroke-linecap="round" d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4" fill="currentColor" stroke="none"/></svg>
-      <span class="mobile-nav-label">Finances</span>
+    <button type="button" class="nav-item" data-nav="finances">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path stroke-linecap="round" d="M3 10h18"/><circle cx="16" cy="14.5" r="1.4" fill="currentColor" stroke="none"/></svg>
+      <span>Finances</span>
     </button>
-    <button class="nav-item mobile-nav-item" data-nav="calendar" title="Calendar">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>
-      <span class="mobile-nav-label">Calendar</span>
+    <button type="button" class="nav-item" data-nav="calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>
+      <span>Calendar</span>
     </button>
-    <button class="nav-item mobile-nav-item" data-nav="study" title="Study">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"/></svg>
-      <span class="mobile-nav-label">Study</span>
+    <button type="button" class="nav-item" data-nav="study">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H12v18H6.5A2.5 2.5 0 014 18.5v-13zM20 5.5A2.5 2.5 0 0017.5 3H12v18h5.5a2.5 2.5 0 002.5-2.5v-13z"/></svg>
+      <span>Study</span>
     </button>
-    <button class="nav-item mobile-nav-item" data-nav="websites" title="Websites">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
-      <span class="mobile-nav-label">Websites</span>
+    <button type="button" class="nav-item" data-nav="websites">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" d="M3 12h18M12 3c2.5 2.5 4 5.5 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.5-4-9s1.5-6.5 4-9z"/></svg>
+      <span>Websites</span>
     </button>
-    <button class="nav-item mobile-nav-item" data-nav="checklist" title="Checklist">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 7l2 2 4-4M9 14l2 2 4-4"/></svg>
-      <span class="mobile-nav-label">Checklist</span>
+    <button type="button" class="nav-item" data-nav="checklist">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="20" height="20" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 7l2 2 4-4M9 14l2 2 4-4"/></svg>
+      <span>Checklist</span>
     </button>
   </nav>
 
-  <div class="main-col">
-    <header class="topbar">
-      <div class="search-wrap">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><circle cx="11" cy="11" r="7"></circle><path stroke-linecap="round" d="M21 21l-4.3-4.3"></path></svg>
-        <input type="search" class="search-input" placeholder="Search sessions, tasks, or finances..." aria-label="Search sessions, tasks, or finances">
-      </div>
-      <div class="topbar-actions">
-        <button class="icon-btn" id="theme-toggle" aria-label="Toggle dark mode"></button>
-        <button class="icon-btn" aria-label="Notifications">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path><path stroke-linecap="round" d="M13.73 21a2 2 0 01-3.46 0"></path></svg>
-        </button>
-        <button class="icon-btn" aria-label="Profile">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor"><circle cx="12" cy="8" r="3.5"></circle><path stroke-linecap="round" d="M4.5 20a7.5 7.5 0 0115 0"></path></svg>
-        </button>
-      </div>
-    </header>
-
-    <main class="pages">
+  <main class="app-main" id="app-main" tabindex="-1">
 
       <section class="page" id="page-dashboard">
-        <div class="stat-grid" id="dash-stat-grid"></div>
+        <header class="page-head">
+          <div>
+            <h1 id="dash-greeting">Hello</h1>
+            <p id="dash-date"></p>
+          </div>
+          <div class="page-actions">
+            <label class="inline-label" for="dash-range">Range</label>
+            <div class="select-wrap">
+              <select id="dash-range">
+                <option value="7">Last 7 days</option>
+                <option value="14" selected>Last 14 days</option>
+                <option value="30">Last 30 days</option>
+              </select>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+        </header>
 
-        <div class="section-header">
-          <h2>Study Timetable</h2>
-          <div class="timetable-controls">
-            <button class="btn btn-secondary" id="dash-manage-schedule">Manage Class Schedule</button>
-            <div class="tt-view-row">
-              <div class="segmented" role="group" aria-label="Timetable view">
-                <button type="button" id="dash-view-day" class="disabled" disabled>Day</button>
-                <button type="button" id="dash-view-week" class="active" disabled>Week</button>
-                <button type="button" id="dash-go-calendar">Month</button>
+        <div class="page-body">
+          <div class="dash-grid">
+            <section class="card ledger" id="dash-stats" aria-label="Ledger summary"></section>
+
+            <section class="card dash-chart" aria-labelledby="dash-chart-title">
+              <div class="card-head">
+                <h2 class="card-title" id="dash-chart-title">Spending overview</h2>
+                <ul class="legend">
+                  <li><span class="swatch swatch-in" aria-hidden="true"></span>Income</li>
+                  <li><span class="swatch swatch-out" aria-hidden="true"></span>Expense</li>
+                </ul>
               </div>
-              <div class="stepper">
-                <button id="dash-prev-week" aria-label="Previous week">&lsaquo;</button>
-                <span id="dash-week-label"></span>
-                <button id="dash-next-week" aria-label="Next week">&rsaquo;</button>
+              <div class="chart-scroll" id="dash-chart-scroll" tabindex="0" role="region" aria-label="Spending chart, scrolls sideways on narrow screens">
+                <div id="dash-chart"></div>
+              </div>
+            </section>
+
+            <section class="card dash-events" aria-labelledby="dash-events-title">
+              <h2 class="card-title" id="dash-events-title">Upcoming events</h2>
+              <ul class="rows" id="dash-events"></ul>
+            </section>
+
+            <aside class="dash-side" aria-label="Budgets and subscriptions">
+              <section class="card" id="dash-budgets-card" aria-labelledby="dash-budgets-title" hidden>
+                <h2 class="card-title" id="dash-budgets-title">Budgets</h2>
+                <ul class="rows" id="dash-budgets"></ul>
+              </section>
+              <section class="card" id="dash-subs-card" aria-labelledby="dash-subs-title" hidden>
+                <h2 class="card-title" id="dash-subs-title">Subscriptions</h2>
+                <ul class="rows" id="dash-subs"></ul>
+              </section>
+            </aside>
+          </div>
+
+          <div class="section-header">
+            <h2 class="section-title">Study Timetable</h2>
+            <div class="timetable-controls">
+              <button type="button" class="btn btn-secondary" id="dash-manage-schedule">Manage Class Schedule</button>
+              <div class="tt-view-row">
+                <div class="segmented" role="group" aria-label="Timetable view">
+                  <button type="button" id="dash-view-day" aria-pressed="false">Day</button>
+                  <button type="button" id="dash-view-week" class="active" aria-pressed="true">Week</button>
+                  <button type="button" id="dash-go-calendar" data-nav="calendar">Month</button>
+                </div>
+                <div class="stepper">
+                  <button type="button" id="dash-prev-week" aria-label="Previous week">&lsaquo;</button>
+                  <span id="dash-week-label"></span>
+                  <button type="button" id="dash-next-week" aria-label="Next week">&rsaquo;</button>
+                </div>
               </div>
             </div>
           </div>
+
+          <div class="timetable">
+            <div class="timetable-head" id="dash-timetable-head"></div>
+            <div class="timetable-body" id="dash-timetable-body"></div>
+          </div>
         </div>
 
-        <div class="timetable">
-          <div class="timetable-head" id="dash-timetable-head"></div>
-          <div class="timetable-body" id="dash-timetable-body"></div>
-        </div>
-
-        <button class="fab" id="dash-fab" aria-label="Create event">+</button>
+        <button type="button" class="fab" id="dash-fab" aria-label="Create event">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
       </section>
 
       <section class="page" id="page-finances">
-        <div class="finance-header">
+        <div class="page-head">
           <div>
             <h1>Financial Overview</h1>
             <p>Tracking your budget and personal expenses.</p>
           </div>
-          <div class="finance-actions">
-            <button class="btn btn-secondary" id="fin-scan-slip">&#9635; Scan Slip</button>
-            <button class="btn btn-secondary" id="fin-export">&darr; Export</button>
-            <button class="btn btn-primary" id="fin-toggle-add">+ New Transaction</button>
-            <input type="file" id="fin-slip-input" accept="image/*" style="display:none;" aria-label="Payment slip photo">
+          <div class="page-actions">
+            <button type="button" class="btn btn-secondary" id="fin-scan-slip"></button>
+            <button type="button" class="btn btn-secondary" id="fin-export">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>
+              Export
+            </button>
+            <button type="button" class="btn btn-primary" id="fin-toggle-add" aria-expanded="false" aria-controls="fin-txn-form">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              New Transaction
+            </button>
+            <input type="file" id="fin-slip-input" accept="image/*" hidden aria-label="Payment slip photo">
           </div>
         </div>
 
-        <form class="txn-form" id="fin-txn-form" style="display:none;">
-          <select class="field" id="fin-txn-type" aria-label="Transaction type">
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
-          </select>
-          <input class="field" required type="number" step="0.01" placeholder="Amount" id="fin-txn-amount" aria-label="Amount">
-          <input class="field" required placeholder="Vendor" id="fin-txn-vendor" aria-label="Vendor">
-          <select class="field" id="fin-txn-category" aria-label="Category"></select>
-          <input class="field" required type="date" id="fin-txn-date" aria-label="Date">
-          <button type="submit" class="btn btn-primary span-2">Save</button>
-        </form>
-
-        <div class="finance-cards-row">
-          <div class="card">
-            <div class="card-top-row"><span class="pill">Current</span></div>
-            <p class="stat-label">Total Balance</p>
-            <p class="stat-value" id="fin-total-balance">฿0.00</p>
-          </div>
-
-          <div class="card" id="fin-goal-card">
-            <div id="fin-goal-view">
-              <div class="card-top-row"><button class="pill" style="border:none;cursor:pointer;" id="fin-goal-edit-btn"></button></div>
-              <p class="stat-label">Savings Goal</p>
-              <p class="stat-value"><span id="fin-goal-current"></span><span style="font-size:18px;font-weight:400;color:var(--color-on-surface-variant);"> / <span id="fin-goal-target"></span></span></p>
-              <div class="goal-progress">
-                <div class="progress-track"><div class="progress-fill" id="fin-goal-bar"></div></div>
-                <span class="goal-pct" id="fin-goal-pct"></span>
-              </div>
-            </div>
-            <form class="goal-form" id="fin-goal-form" style="display:none;">
-              <p class="eyebrow" style="margin:0;">Edit Savings Goal</p>
-              <input class="field" placeholder="Goal name" id="fin-goal-label" aria-label="Goal name">
-              <div class="goal-form-grid">
-                <input class="field" required type="number" placeholder="Target amount" id="fin-goal-target-input" aria-label="Target amount">
-                <input class="field" type="number" placeholder="Saved so far" id="fin-goal-current-input" aria-label="Saved so far">
-              </div>
-              <div class="goal-form-actions">
-                <button type="submit" class="btn-sm btn-primary-sm">Save</button>
-                <button type="button" class="btn-sm btn-secondary-sm" id="fin-goal-cancel">Cancel</button>
-              </div>
-            </form>
-          </div>
-
-          <div class="card">
-            <div class="card-top-row between">
-              <h2 class="eyebrow" style="margin:0;">Pending Review</h2>
-              <span class="pill pill-error" id="fin-pending-flag" style="display:none;">Action Required</span>
-            </div>
-            <p class="pending-total"><span id="fin-pending-count"></span> <span id="fin-pending-amount"></span></p>
-            <div class="pending-list" id="fin-pending-list"></div>
-          </div>
-        </div>
-
-        <div class="finance-mid-row">
-          <div class="card">
-            <h2 class="eyebrow">Monthly Spending Breakdown</h2>
-            <svg viewBox="0 0 560 260" style="width:100%;height:260px;overflow:visible;" id="fin-chart" role="img" aria-label="Monthly income and expense totals, last 6 months. Full figures are in the transaction history table below."></svg>
-            <div class="chart-legend">
-              <span><span class="legend-swatch" style="background:var(--color-success);"></span>Income</span>
-              <span><span class="legend-swatch" style="background:var(--color-error);"></span>Expense</span>
+        <div class="page-body">
+          <div class="disclosure" id="fin-txn-wrap">
+            <div class="disclosure-inner">
+              <form class="form-card txn-form" id="fin-txn-form" novalidate>
+                <div class="form-field">
+                  <label for="fin-txn-type">Type</label>
+                  <select class="field" id="fin-txn-type">
+                    <option value="expense">Expense</option>
+                    <option value="income">Income</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="fin-txn-amount">Amount</label>
+                  <input class="field" required type="number" step="0.01" min="0.01" inputmode="decimal" id="fin-txn-amount">
+                </div>
+                <div class="form-field">
+                  <label for="fin-txn-vendor">Vendor</label>
+                  <input class="field" required id="fin-txn-vendor" autocomplete="off">
+                </div>
+                <div class="form-field">
+                  <label for="fin-txn-category">Category</label>
+                  <select class="field" id="fin-txn-category"></select>
+                </div>
+                <div class="form-field">
+                  <label for="fin-txn-date">Date</label>
+                  <input class="field" required type="date" id="fin-txn-date">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Save transaction</button>
+                </div>
+              </form>
             </div>
           </div>
 
-          <div class="card">
-            <h2 class="eyebrow">Active Subscriptions</h2>
-            <div class="sub-list" id="fin-sub-list"></div>
-            <form class="sub-form" id="fin-sub-form" style="display:none;">
-              <input class="field span-2" required placeholder="Name" id="fin-sub-name" aria-label="Subscription name">
-              <input class="field" placeholder="Plan (optional)" id="fin-sub-plan" aria-label="Plan">
-              <input class="field" required type="number" step="0.01" placeholder="Amount" id="fin-sub-amount" aria-label="Amount">
-              <input class="field" required type="number" min="1" max="31" placeholder="Bills on day (1-31)" id="fin-sub-billing-day" aria-label="Billing day of month">
-              <button type="button" class="btn-sm btn-secondary-sm" id="fin-sub-cancel" style="display:none;">Cancel</button>
-              <button type="submit" class="btn-sm btn-primary-sm span-2" id="fin-sub-submit-btn">Add Subscription</button>
-            </form>
-            <button class="manage-subs-btn" id="fin-manage-subs">Manage Subscriptions</button>
-          </div>
-        </div>
+          <section class="card band" aria-label="Account summary">
+            <div class="band-cell">
+              <h2 class="band-label">Total balance</h2>
+              <p class="band-value" id="fin-total-balance">฿0.00</p>
+            </div>
 
-        <div class="txn-history">
-          <h2 class="eyebrow">Transaction History</h2>
-          <table class="txn-table">
-            <thead>
-              <tr><th>Vendor</th><th>Category</th><th>Date</th><th>Status</th><th class="amount-col">Amount</th><th></th></tr>
-            </thead>
-            <tbody id="fin-txn-rows"></tbody>
-          </table>
+            <div class="band-cell" id="fin-goal-card">
+              <div id="fin-goal-view">
+                <div class="band-label-row">
+                  <h2 class="band-label" id="fin-goal-name">Savings goal</h2>
+                  <button type="button" class="link-btn" id="fin-goal-edit-btn">Edit</button>
+                </div>
+                <p class="band-value band-value-sm"><span id="fin-goal-current"></span><span class="stat-of"> of <span id="fin-goal-target"></span></span></p>
+                <div class="goal-progress">
+                  <div class="progress-track" role="progressbar" aria-label="Savings goal progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="fin-goal-track"><div class="progress-fill" id="fin-goal-bar"></div></div>
+                  <span class="goal-pct" id="fin-goal-pct"></span>
+                </div>
+              </div>
+              <form class="goal-form" id="fin-goal-form" hidden novalidate>
+                <h2 class="band-label">Edit savings goal</h2>
+                <div class="form-field">
+                  <label for="fin-goal-label">Goal name</label>
+                  <input class="field" id="fin-goal-label">
+                </div>
+                <div class="goal-form-grid">
+                  <div class="form-field">
+                    <label for="fin-goal-target-input">Target amount</label>
+                    <input class="field" required type="number" min="1" id="fin-goal-target-input">
+                  </div>
+                  <div class="form-field">
+                    <label for="fin-goal-current-input">Saved so far</label>
+                    <input class="field" type="number" min="0" id="fin-goal-current-input">
+                  </div>
+                </div>
+                <div class="goal-form-actions">
+                  <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                  <button type="button" class="btn btn-sm btn-secondary" id="fin-goal-cancel">Cancel</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="band-cell">
+              <div class="band-label-row">
+                <h2 class="band-label">Pending review</h2>
+                <span class="pill pill-error" id="fin-pending-flag" hidden>Action required</span>
+              </div>
+              <p class="band-value band-value-sm pending-total"><span id="fin-pending-count"></span> <span id="fin-pending-amount"></span></p>
+              <div class="pending-list" id="fin-pending-list"></div>
+            </div>
+          </section>
+
+          <div class="finance-mid-row">
+            <section class="card" aria-labelledby="fin-chart-title">
+              <div class="card-head">
+                <h2 class="card-title" id="fin-chart-title">Monthly spending breakdown</h2>
+                <ul class="legend"><li><span class="swatch swatch-in" aria-hidden="true"></span>Income</li><li><span class="swatch swatch-out" aria-hidden="true"></span>Expense</li></ul>
+              </div>
+              <div class="chart-scroll" id="fin-chart-scroll" tabindex="0" role="region" aria-label="Monthly chart, scrolls sideways on narrow screens">
+                <div id="fin-chart"></div>
+              </div>
+            </section>
+
+            <section class="card" aria-labelledby="fin-subs-title">
+              <h2 class="card-title" id="fin-subs-title">Active subscriptions</h2>
+              <div class="sub-list" id="fin-sub-list"></div>
+              <div class="disclosure" id="fin-sub-wrap">
+                <div class="disclosure-inner">
+                  <form class="sub-form" id="fin-sub-form" novalidate>
+                    <div class="form-field span-2">
+                      <label for="fin-sub-name">Name</label>
+                      <input class="field" required id="fin-sub-name">
+                    </div>
+                    <div class="form-field">
+                      <label for="fin-sub-plan">Plan (optional)</label>
+                      <input class="field" id="fin-sub-plan">
+                    </div>
+                    <div class="form-field">
+                      <label for="fin-sub-amount">Amount</label>
+                      <input class="field" required type="number" step="0.01" min="0.01" inputmode="decimal" id="fin-sub-amount">
+                    </div>
+                    <div class="form-field span-2">
+                      <label for="fin-sub-billing-day">Bills on day (1-31)</label>
+                      <input class="field" required type="number" min="1" max="31" id="fin-sub-billing-day">
+                    </div>
+                    <div class="form-actions span-2">
+                      <button type="button" class="btn btn-secondary" id="fin-sub-cancel" hidden>Cancel</button>
+                      <button type="submit" class="btn btn-primary" id="fin-sub-submit-btn">Add Subscription</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary manage-subs-btn" id="fin-manage-subs" aria-expanded="false" aria-controls="fin-sub-form">Manage Subscriptions</button>
+            </section>
+          </div>
+
+          <section class="card txn-history" aria-labelledby="fin-history-title">
+            <div class="txn-history-head">
+              <h2 class="card-title" id="fin-history-title">Transaction history</h2>
+            </div>
+            <div class="txn-scroll">
+              <table class="txn-table" role="table">
+                <caption class="sr-only">Transactions, newest first</caption>
+                <thead role="rowgroup">
+                  <tr role="row"><th role="columnheader" scope="col">Vendor</th><th role="columnheader" scope="col">Category</th><th role="columnheader" scope="col">Date</th><th role="columnheader" scope="col">Status</th><th role="columnheader" scope="col" class="amount-col">Amount</th><th role="columnheader" scope="col"><span class="sr-only">Actions</span></th></tr>
+                </thead>
+                <tbody id="fin-txn-rows" role="rowgroup"></tbody>
+                <tfoot id="fin-txn-foot" role="rowgroup"></tfoot>
+              </table>
+            </div>
+            <div id="fin-txn-empty" hidden></div>
+          </section>
         </div>
       </section>
 
       <section class="page" id="page-calendar">
-        <div class="calendar-header">
-          <div class="calendar-header-left">
+        <div class="page-head">
+          <div class="page-head-left">
             <h1>Calendar</h1>
             <div class="stepper">
-              <button id="cal-prev-month" aria-label="Previous month">&lsaquo;</button>
+              <button type="button" id="cal-prev-month" aria-label="Previous month">&lsaquo;</button>
               <span id="cal-month-label"></span>
-              <button id="cal-next-month" aria-label="Next month">&rsaquo;</button>
+              <button type="button" id="cal-next-month" aria-label="Next month">&rsaquo;</button>
             </div>
           </div>
-          <button class="btn btn-primary" id="cal-create-event">+ Create Event</button>
+          <button type="button" class="btn btn-primary" id="cal-create-event">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Create Event
+          </button>
         </div>
 
-        <div class="month-grid">
-          <div class="weekday-row" id="cal-weekday-row"></div>
-          <div class="month-cells" id="cal-month-cells"></div>
+        <div class="page-body">
+          <div class="month-grid">
+            <div class="weekday-row" id="cal-weekday-row"></div>
+            <div class="month-cells" id="cal-month-cells"></div>
+          </div>
+
+          <section class="cal-agenda" id="cal-agenda" aria-label="Agenda">
+            <div class="cal-agenda-head">
+              <h2 class="cal-agenda-title" id="cal-agenda-day-title" aria-live="polite"></h2>
+              <button type="button" class="btn btn-secondary" id="cal-agenda-add">Add event</button>
+            </div>
+            <ul class="cal-agenda-list" id="cal-agenda-day" aria-labelledby="cal-agenda-day-title"></ul>
+            <h2 class="cal-agenda-title cal-agenda-month-title" id="cal-agenda-month-title">All events this month</h2>
+            <div class="cal-agenda-months" id="cal-agenda-month"></div>
+          </section>
         </div>
 
         <div class="class-group-popover" id="cal-class-popover" hidden>
@@ -256,144 +403,182 @@
         </div>
       </section>
 
-      <section class="page page-narrow" id="page-study">
-        <div class="study-intro">
-          <h1>Study</h1>
-          <p>Your study team.</p>
+      <section class="page" id="page-study">
+        <div class="page-head">
+          <div>
+            <h1>Study</h1>
+            <p>Your study team.</p>
+          </div>
         </div>
 
-        <div class="study-tabs" id="study-tabs"></div>
-        <div id="study-panels"></div>
+        <div class="page-body page-narrow">
+          <div class="study-tabs" id="study-tabs" role="tablist" aria-label="Study team"></div>
+          <div id="study-panels"></div>
+        </div>
       </section>
 
       <section class="page" id="page-websites">
-        <div class="finance-header">
+        <div class="page-head">
           <div>
             <h1>Websites</h1>
             <p>Websites you've built.</p>
           </div>
-          <div class="finance-actions">
-            <button class="btn btn-primary" id="web-toggle-add">+ Add Website</button>
+          <div class="page-actions">
+            <button type="button" class="btn btn-primary" id="web-toggle-add" aria-expanded="false" aria-controls="web-form">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Add Website
+            </button>
           </div>
         </div>
 
-        <form class="web-form" id="web-form" style="display:none;">
-          <input class="field" required placeholder="Name" id="web-name" aria-label="Website name">
-          <input class="field" required type="url" placeholder="Link (https://...)" id="web-url" aria-label="Website link">
-          <input class="field span-2" type="url" placeholder="Image URL (optional)" id="web-image" aria-label="Image URL">
-          <button type="submit" class="btn btn-primary span-2">Save</button>
-        </form>
+        <div class="page-body">
+          <div class="disclosure" id="web-wrap">
+            <div class="disclosure-inner">
+              <form class="form-card web-form" id="web-form" novalidate>
+                <div class="form-field">
+                  <label for="web-name">Name</label>
+                  <input class="field" required id="web-name" autocomplete="off">
+                </div>
+                <div class="form-field">
+                  <label for="web-url">Link</label>
+                  <input class="field" required type="url" placeholder="https://" id="web-url">
+                </div>
+                <div class="form-field span-2">
+                  <label for="web-image">Image URL (optional)</label>
+                  <input class="field" type="url" placeholder="https://" id="web-image">
+                </div>
+                <div class="form-actions span-2">
+                  <button type="submit" class="btn btn-primary">Save website</button>
+                </div>
+              </form>
+            </div>
+          </div>
 
-        <div class="web-grid" id="web-grid"></div>
+          <div class="web-grid" id="web-grid"></div>
+        </div>
       </section>
 
       <section class="page" id="page-checklist">
-        <div class="cl-hero">
-          <div class="cl-hero-text">
+        <div class="page-head">
+          <div>
             <h1>Checklist</h1>
             <p>Track your tasks and to-dos.</p>
           </div>
-          <div class="cl-hero-actions">
-            <button class="btn btn-secondary" id="cl-clear-done">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/></svg>
+          <div class="page-actions">
+            <button type="button" class="btn btn-secondary" id="cl-clear-done">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="16" height="16" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V4a1 1 0 011-1h6a1 1 0 011 1v3"/></svg>
               Clear Done
             </button>
-            <button class="btn btn-primary" id="cl-toggle-add">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+            <button type="button" class="btn btn-primary cl-toggle" id="cl-toggle-add" aria-expanded="false" aria-controls="cl-add-form">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke="currentColor" width="16" height="16" aria-hidden="true"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
               New Task
             </button>
           </div>
         </div>
 
-        <div class="cl-add-wrap" id="cl-add-wrap">
-          <form class="cl-add-form" id="cl-add-form">
-            <div class="cl-add-main">
-              <input class="field cl-add-input" required placeholder="What needs to be done?" id="cl-task-title" aria-label="Task title" autocomplete="off">
+        <div class="page-body">
+          <div class="disclosure" id="cl-add-wrap">
+            <div class="disclosure-inner">
+              <form class="form-card cl-add-form" id="cl-add-form" novalidate>
+                <div class="form-field">
+                  <label for="cl-task-title">What needs to be done?</label>
+                  <input class="field" required id="cl-task-title" autocomplete="off">
+                </div>
+                <div class="cl-add-options">
+                  <div class="form-field">
+                    <label for="cl-task-priority">Priority</label>
+                    <select class="field" id="cl-task-priority">
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label for="cl-task-due">Due date</label>
+                    <input class="field" type="date" id="cl-task-due">
+                  </div>
+                  <button type="submit" class="btn btn-primary cl-add-submit">Add Task</button>
+                </div>
+              </form>
             </div>
-            <div class="cl-add-options">
-              <div class="cl-add-option">
-                <label class="cl-add-label" for="cl-task-priority">
-                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21v-4m4 4v-8m4 8V9m4 12V5m4 16V3"/></svg>
-                  Priority
-                </label>
-                <select class="field" id="cl-task-priority" aria-label="Priority">
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="low">Low</option>
-                </select>
+          </div>
+
+          <div class="cl-summary-row">
+            <div class="cl-ring-card" id="cl-ring-card">
+              <div class="cl-ring-wrap">
+                <svg class="cl-ring-svg" viewBox="0 0 80 80" aria-hidden="true">
+                  <circle class="ring-track" cx="40" cy="40" r="34" />
+                  <circle class="ring-arc" id="cl-ring-fill" cx="40" cy="40" r="34" />
+                </svg>
+                <span class="cl-ring-pct" id="cl-ring-pct">0%</span>
               </div>
-              <div class="cl-add-option">
-                <label class="cl-add-label" for="cl-task-due">
-                  <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke="currentColor" width="14" height="14"><rect x="3" y="5" width="18" height="16" rx="2"/><path stroke-linecap="round" d="M8 3v4M16 3v4M3 10h18"/></svg>
-                  Due date
-                </label>
-                <input class="field" type="date" id="cl-task-due" aria-label="Due date">
+              <div class="cl-ring-info">
+                <p class="cl-ring-label">Progress</p>
+                <p class="cl-ring-detail" id="cl-ring-detail">0 of 0 tasks done</p>
               </div>
-              <button type="submit" class="btn btn-primary cl-add-submit">
-                <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                Add Task
+            </div>
+
+            <div class="cl-filters segmented" id="cl-filters" role="group" aria-label="Filter tasks">
+              <button type="button" class="cl-filter active" data-filter="all" aria-pressed="true">
+                <span class="cl-filter-label">All</span>
+                <span class="cl-filter-count" id="cl-count-all">0</span>
+              </button>
+              <button type="button" class="cl-filter" data-filter="active" aria-pressed="false">
+                <span class="cl-filter-label">Active</span>
+                <span class="cl-filter-count" id="cl-count-active">0</span>
+              </button>
+              <button type="button" class="cl-filter" data-filter="done" aria-pressed="false">
+                <span class="cl-filter-label">Done</span>
+                <span class="cl-filter-count" id="cl-count-done">0</span>
               </button>
             </div>
-          </form>
-        </div>
-
-        <div class="cl-summary-row">
-          <div class="cl-ring-card" id="cl-ring-card">
-            <div class="cl-ring-wrap">
-              <svg class="cl-ring-svg" viewBox="0 0 80 80">
-                <circle class="cl-ring-bg" cx="40" cy="40" r="34" />
-                <circle class="cl-ring-fill" id="cl-ring-fill" cx="40" cy="40" r="34" />
-              </svg>
-              <span class="cl-ring-pct" id="cl-ring-pct">0%</span>
-            </div>
-            <div class="cl-ring-info">
-              <p class="cl-ring-label">Progress</p>
-              <p class="cl-ring-detail" id="cl-ring-detail">0 of 0 tasks done</p>
-            </div>
           </div>
 
-          <div class="cl-filters" id="cl-filters">
-            <button class="cl-filter active" data-filter="all">
-              <span class="cl-filter-label">All</span>
-              <span class="cl-filter-count" id="cl-count-all">0</span>
-            </button>
-            <button class="cl-filter" data-filter="active">
-              <span class="cl-filter-label">Active</span>
-              <span class="cl-filter-count" id="cl-count-active">0</span>
-            </button>
-            <button class="cl-filter" data-filter="done">
-              <span class="cl-filter-label">Done</span>
-              <span class="cl-filter-count" id="cl-count-done">0</span>
-            </button>
-          </div>
+          <div class="cl-list" id="cl-list"></div>
         </div>
-
-        <div class="cl-list" id="cl-list"></div>
       </section>
 
-    </main>
-  </div>
+  </main>
+</div>
 
   <div class="modal-overlay" id="event-modal-overlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
       <div class="modal-head">
         <h2 id="event-modal-title">Create Event</h2>
-        <button class="modal-close" id="event-modal-close" aria-label="Close">&#10005;</button>
+        <button type="button" class="modal-close" id="event-modal-close" aria-label="Close">&#10005;</button>
       </div>
-      <form class="event-form" id="event-form">
-        <input class="field span-2" required placeholder="Title" id="event-title" aria-label="Title">
-        <select class="field span-2" id="event-type" aria-label="Event type">
-          <option value="session">Study</option>
-          <option value="exam">Exam</option>
-          <option value="deadline">Deadline</option>
-          <option value="task">Task</option>
-        </select>
-        <input class="field span-2" required type="date" id="event-date" aria-label="Date">
-        <input class="field" type="time" id="event-start" aria-label="Start time">
-        <input class="field" type="time" id="event-end" aria-label="End time">
-        <input class="field span-2" placeholder="Location" id="event-location" aria-label="Location">
+      <form class="event-form" id="event-form" novalidate>
+        <div class="form-field span-2">
+          <label for="event-title">Title</label>
+          <input class="field" required id="event-title" autocomplete="off">
+        </div>
+        <div class="form-field span-2">
+          <label for="event-type">Event type</label>
+          <select class="field" id="event-type">
+            <option value="session">Study</option>
+            <option value="exam">Exam</option>
+            <option value="deadline">Deadline</option>
+            <option value="task">Task</option>
+          </select>
+        </div>
+        <div class="form-field span-2">
+          <label for="event-date">Date</label>
+          <input class="field" required type="date" id="event-date">
+        </div>
+        <div class="form-field">
+          <label for="event-start">Start time</label>
+          <input class="field" type="time" id="event-start">
+        </div>
+        <div class="form-field">
+          <label for="event-end">End time</label>
+          <input class="field" type="time" id="event-end">
+        </div>
+        <div class="form-field span-2">
+          <label for="event-location">Location</label>
+          <input class="field" id="event-location" autocomplete="off">
+        </div>
         <div class="span-2 submit-row event-form-actions">
-          <button type="button" class="btn btn-danger" id="event-delete" style="display:none;">Delete Event</button>
+          <button type="button" class="btn btn-danger" id="event-delete" hidden>Delete Event</button>
           <button type="submit" class="btn btn-primary">Save Event</button>
         </div>
       </form>
@@ -401,32 +586,53 @@
   </div>
 
   <div class="modal-overlay" id="schedule-modal-overlay">
-    <div class="modal">
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
       <div class="modal-head">
-        <h2>Manage Class Schedule</h2>
-        <button class="modal-close" id="schedule-modal-close" aria-label="Close">&#10005;</button>
+        <h2 id="schedule-modal-title">Manage Class Schedule</h2>
+        <button type="button" class="modal-close" id="schedule-modal-close" aria-label="Close">&#10005;</button>
       </div>
 
-      <div class="schedule-week-grid" id="schedule-list" style="margin-bottom:20px;"></div>
+      <div class="schedule-week-grid" id="schedule-list"></div>
 
-      <form class="event-form" id="schedule-form">
-        <input class="field span-2" required placeholder="Title" id="schedule-title" aria-label="Title">
-        <select class="field span-2" id="schedule-day" aria-label="Day of week">
-          <option value="1">Monday</option>
-          <option value="2">Tuesday</option>
-          <option value="3">Wednesday</option>
-          <option value="4">Thursday</option>
-          <option value="5">Friday</option>
-          <option value="6">Saturday</option>
-          <option value="0">Sunday</option>
-        </select>
-        <input class="field" required type="time" id="schedule-start" aria-label="Start time">
-        <input class="field" type="time" id="schedule-end" aria-label="End time">
-        <input class="field span-2" placeholder="Location" id="schedule-location" aria-label="Location">
-        <label class="span-2" style="font-size:12px;color:var(--color-on-surface-variant);">Starts on<input class="field" required type="date" id="schedule-valid-from" style="margin-top:4px;"></label>
-        <label class="span-2" style="font-size:12px;color:var(--color-on-surface-variant);">Ends on (optional, leave blank to repeat indefinitely)<input class="field" type="date" id="schedule-valid-until" style="margin-top:4px;"></label>
+      <form class="event-form" id="schedule-form" novalidate>
+        <div class="form-field span-2">
+          <label for="schedule-title">Title</label>
+          <input class="field" required id="schedule-title" autocomplete="off">
+        </div>
+        <div class="form-field span-2">
+          <label for="schedule-day">Day of week</label>
+          <select class="field" id="schedule-day">
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+            <option value="0">Sunday</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="schedule-start">Start time</label>
+          <input class="field" required type="time" id="schedule-start">
+        </div>
+        <div class="form-field">
+          <label for="schedule-end">End time</label>
+          <input class="field" type="time" id="schedule-end">
+        </div>
+        <div class="form-field span-2">
+          <label for="schedule-location">Location</label>
+          <input class="field" id="schedule-location" autocomplete="off">
+        </div>
+        <div class="form-field span-2">
+          <label for="schedule-valid-from">Starts on</label>
+          <input class="field" required type="date" id="schedule-valid-from">
+        </div>
+        <div class="form-field span-2">
+          <label for="schedule-valid-until">Ends on (optional, leave blank to repeat indefinitely)</label>
+          <input class="field" type="date" id="schedule-valid-until">
+        </div>
         <div class="span-2 submit-row event-form-actions">
-          <button type="button" class="btn btn-danger" id="schedule-delete" style="display:none;">Delete Series</button>
+          <button type="button" class="btn btn-danger" id="schedule-delete" hidden>Delete Series</button>
           <button type="submit" class="btn btn-primary">Save Class</button>
         </div>
       </form>
@@ -434,29 +640,41 @@
   </div>
 
   <div class="modal-overlay" id="slip-modal-overlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="slip-modal-title">
       <div class="modal-head">
-        <h2>Confirm Slip</h2>
-        <button class="modal-close" id="slip-modal-close" aria-label="Close">&#10005;</button>
+        <h2 id="slip-modal-title">Confirm Slip</h2>
+        <button type="button" class="modal-close" id="slip-modal-close" aria-label="Close">&#10005;</button>
       </div>
-      <img id="slip-preview" class="slip-preview" alt="Scanned slip">
+      <img id="slip-preview" class="slip-preview" alt="Scanned payment slip">
       <p class="slip-confidence" id="slip-confidence"></p>
-      <form class="event-form" id="slip-form">
-        <input class="field" required type="number" step="0.01" min="0.01" placeholder="Amount" id="slip-amount" aria-label="Amount">
-        <input class="field" required placeholder="Vendor" id="slip-vendor" aria-label="Vendor">
-        <input class="field" required type="date" id="slip-date" aria-label="Date">
-        <select class="field" id="slip-category" aria-label="Category"></select>
+      <form class="event-form" id="slip-form" novalidate>
+        <div class="form-field">
+          <label for="slip-amount">Amount</label>
+          <input class="field" required type="number" step="0.01" min="0.01" inputmode="decimal" id="slip-amount">
+        </div>
+        <div class="form-field">
+          <label for="slip-vendor">Vendor</label>
+          <input class="field" required id="slip-vendor" autocomplete="off">
+        </div>
+        <div class="form-field">
+          <label for="slip-date">Date</label>
+          <input class="field" required type="date" id="slip-date">
+        </div>
+        <div class="form-field">
+          <label for="slip-category">Category</label>
+          <select class="field" id="slip-category"></select>
+        </div>
         <button type="submit" class="btn btn-primary span-2" id="slip-save-btn">Save Expense</button>
       </form>
     </div>
   </div>
 
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js"
         integrity="sha384-3wY11tldQ5+yWqAvmTN4XtQvnjoTva0cV15O/O/O5NTtp0ivVopSzLOzsVXWZse9"
         crossorigin="anonymous"></script>
 <script src="js/config.js"></script>
+<script src="js/dialog.js"></script>
+<script src="js/charts.js"></script>
 <script src="js/app.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/finances.js"></script>

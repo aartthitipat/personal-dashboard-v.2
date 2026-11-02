@@ -13,22 +13,23 @@ const Study = (() => {
   const panelsEl = document.getElementById('study-panels');
 
   tabsEl.innerHTML = MEMBERS.map((m) => `
-    <button class="study-tab" data-key="${m.key}">
+    <button type="button" class="study-tab" id="study-tab-${m.key}" role="tab" aria-controls="study-panel-${m.key}" data-key="${m.key}">
       <span class="name">${App.escapeHtml(m.name)}</span>
       <span class="role">${App.escapeHtml(m.role)}</span>
     </button>
   `).join('');
 
   panelsEl.innerHTML = MEMBERS.map((m) => `
-    <div class="chat-panel" data-key="${m.key}">
+    <div class="chat-panel" id="study-panel-${m.key}" role="tabpanel" aria-labelledby="study-tab-${m.key}" data-key="${m.key}">
       <div class="chat-panel-head">
         <p>${App.escapeHtml(m.name)} &middot; ${App.escapeHtml(m.role)}</p>
         <p>${App.escapeHtml(m.tagline)}</p>
       </div>
       <div class="chat-messages" data-key="${m.key}" role="log" aria-live="polite" aria-label="Conversation with ${App.escapeHtml(m.name)}"></div>
       <form class="chat-form" data-key="${m.key}">
-        <input class="field" placeholder="Message ${App.escapeHtml(m.name)}..." aria-label="Message ${App.escapeHtml(m.name)}" data-key="${m.key}">
-        <button type="submit" class="btn btn-primary">Send</button>
+        <label class="sr-only" for="study-input-${m.key}">Message ${App.escapeHtml(m.name)}</label>
+        <input class="field" id="study-input-${m.key}" autocomplete="off" placeholder="Message ${App.escapeHtml(m.name)}..." data-key="${m.key}">
+        <button type="submit" class="btn btn-primary" aria-label="Send message to ${App.escapeHtml(m.name)}">Send</button>
       </form>
     </div>
   `).join('');
@@ -38,6 +39,20 @@ const Study = (() => {
       activeKey = btn.dataset.key;
       renderTabs();
     });
+  });
+
+  tabsEl.addEventListener('keydown', (e) => {
+    const keys = MEMBERS.map((m) => m.key);
+    let i = keys.indexOf(activeKey);
+    if (e.key === 'ArrowRight') i = (i + 1) % keys.length;
+    else if (e.key === 'ArrowLeft') i = (i - 1 + keys.length) % keys.length;
+    else if (e.key === 'Home') i = 0;
+    else if (e.key === 'End') i = keys.length - 1;
+    else return;
+    e.preventDefault();
+    activeKey = keys[i];
+    renderTabs();
+    tabsEl.querySelector(`.study-tab[data-key="${activeKey}"]`).focus();
   });
 
   panelsEl.querySelectorAll('.chat-form').forEach((form) => {
@@ -50,6 +65,8 @@ const Study = (() => {
   function renderTabs() {
     tabsEl.querySelectorAll('.study-tab').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.key === activeKey);
+      btn.setAttribute('aria-selected', String(btn.dataset.key === activeKey));
+      btn.tabIndex = btn.dataset.key === activeKey ? 0 : -1;
     });
     panelsEl.querySelectorAll('.chat-panel').forEach((panel) => {
       panel.classList.toggle('active', panel.dataset.key === activeKey);
@@ -89,13 +106,11 @@ const Study = (() => {
     input.value = '';
 
     const { error: userErr } = await sb.from('messages').insert({ member: key, role: 'user', content: text, sources: null });
-    if (userErr) return alert(userErr.message);
+    if (userErr) return ui.alert(userErr.message, { title: 'Something went wrong' });
 
     sending[key] = true;
     await reload(key);
 
-    // messagesByMember[key] already includes the user message just inserted above
-    // (reload() re-fetched it); drop it here since it's sent separately as `message`.
     const history = (messagesByMember[key] || []).slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
 
     const { data, error: callErr } = await sb.functions.invoke('study-chat', {
@@ -106,7 +121,7 @@ const Study = (() => {
 
     if (callErr) {
       await reload(key);
-      return alert(callErr.message);
+      return ui.alert(callErr.message, { title: 'Something went wrong' });
     }
 
     const { error: replyErr } = await sb.from('messages').insert({
@@ -115,7 +130,7 @@ const Study = (() => {
       content: data.content,
       sources: data.sources ? JSON.stringify(data.sources) : null,
     });
-    if (replyErr) return alert(replyErr.message);
+    if (replyErr) return ui.alert(replyErr.message, { title: 'Something went wrong' });
     await reload(key);
   }
 
@@ -125,7 +140,7 @@ const Study = (() => {
       .select('id, role, content, sources')
       .eq('member', key)
       .order('id');
-    if (error) return alert(error.message);
+    if (error) return ui.alert(error.message, { title: 'Something went wrong' });
     messagesByMember[key] = data.map((m) => ({ ...m, sources: parseSources(m.sources) }));
     renderMessages(key);
   }
@@ -138,7 +153,7 @@ const Study = (() => {
     try {
       await Promise.all(MEMBERS.map((m) => reload(m.key)));
     } catch (err) {
-      alert(err.message);
+      ui.alert(err.message, { title: 'Something went wrong' });
     } finally {
       pageEl.removeAttribute('aria-busy');
     }

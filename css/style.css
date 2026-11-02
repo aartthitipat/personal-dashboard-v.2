@@ -648,11 +648,8 @@ button.brand { cursor: pointer; border-radius: var(--radius-sm); }
 .dash-grid {
   margin-bottom: var(--space-6);
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  grid-template-areas:
-    "ledger chart"
-    "ledger side"
-    "events side";
+  grid-template-columns: minmax(0, 520px);
+  grid-template-areas: "ledger";
   gap: var(--space-5);
   align-items: start;
 }
@@ -1038,7 +1035,7 @@ button.brand { cursor: pointer; border-radius: var(--radius-sm); }
 @media (max-width: 1099px) {
   .dash-grid {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "ledger" "chart" "events" "side";
+    grid-template-areas: "ledger";
   }
   .finance-mid-row { grid-template-columns: minmax(0, 1fr); }
 }
@@ -1214,3 +1211,6 @@ button.brand { cursor: pointer; border-radius: var(--radius-sm); }
   .mobile-nav .nav-item { min-width: 48px; font-size: 11px; }
   .page-head { padding: var(--space-4) var(--space-3); }
 }
+
+.btn-danger-outline { color: var(--color-error); border-color: var(--color-error); }
+.btn-danger-outline:hover { background: var(--color-error-container); }

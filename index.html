@@ -133,7 +133,7 @@
           <div class="dash-grid">
             <section class="card ledger" id="dash-stats" aria-label="Ledger summary"></section>
 
-            <section class="card dash-chart" aria-labelledby="dash-chart-title">
+            <section class="card dash-chart" aria-labelledby="dash-chart-title" hidden>
               <div class="card-head">
                 <h2 class="card-title" id="dash-chart-title">Spending overview</h2>
                 <ul class="legend">
@@ -146,12 +146,12 @@
               </div>
             </section>
 
-            <section class="card dash-events" aria-labelledby="dash-events-title">
+            <section class="card dash-events" aria-labelledby="dash-events-title" hidden>
               <h2 class="card-title" id="dash-events-title">Upcoming events</h2>
               <ul class="rows" id="dash-events"></ul>
             </section>
 
-            <aside class="dash-side" aria-label="Budgets and subscriptions">
+            <aside class="dash-side" aria-label="Budgets and subscriptions" hidden>
               <section class="card" id="dash-budgets-card" aria-labelledby="dash-budgets-title" hidden>
                 <h2 class="card-title" id="dash-budgets-title">Budgets</h2>
                 <ul class="rows" id="dash-budgets"></ul>
@@ -163,10 +163,9 @@
             </aside>
           </div>
 
-          <div class="section-header">
+          <div class="section-header" hidden>
             <h2 class="section-title">Study Timetable</h2>
             <div class="timetable-controls">
-              <button type="button" class="btn btn-secondary" id="dash-manage-schedule">Manage Class Schedule</button>
               <div class="tt-view-row">
                 <div class="segmented" role="group" aria-label="Timetable view">
                   <button type="button" id="dash-view-day" aria-pressed="false">Day</button>
@@ -182,13 +181,13 @@
             </div>
           </div>
 
-          <div class="timetable">
+          <div class="timetable" hidden>
             <div class="timetable-head" id="dash-timetable-head"></div>
             <div class="timetable-body" id="dash-timetable-body"></div>
           </div>
         </div>
 
-        <button type="button" class="fab" id="dash-fab" aria-label="Create event">
+        <button type="button" class="fab" id="dash-fab" aria-label="Create event" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </section>
@@ -371,10 +370,14 @@
               <button type="button" id="cal-next-month" aria-label="Next month">&rsaquo;</button>
             </div>
           </div>
-          <button type="button" class="btn btn-primary" id="cal-create-event">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            Create Event
-          </button>
+          <div class="page-actions">
+            <button type="button" class="btn btn-secondary" id="dash-manage-schedule">Manage Class Schedule</button>
+            <button type="button" class="btn btn-secondary btn-danger-outline" id="cal-delete-all">Delete all events</button>
+            <button type="button" class="btn btn-primary" id="cal-create-event">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" width="16" height="16" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              Create Event
+            </button>
+          </div>
         </div>
 
         <div class="page-body">

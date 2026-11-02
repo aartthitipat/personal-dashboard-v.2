@@ -195,6 +195,18 @@ const Calendar = (() => {
     load();
   });
 
+  document.getElementById('cal-delete-all').addEventListener('click', async () => {
+    const { count, error: countErr } = await sb.from('events').select('id', { count: 'exact', head: true });
+    if (countErr) { ui.alert(countErr.message, { title: 'Something went wrong' }); return; }
+    if (!count) { ui.toast('There are no events to delete.'); return; }
+    const ok = await ui.confirm(`Delete all ${count} event(s)? This cannot be undone. Weekly class schedules are not affected.`, { title: 'Delete all events', confirmLabel: 'Delete all', cancelLabel: 'Keep events', danger: true });
+    if (!ok) return;
+    const { error } = await sb.from('events').delete().not('id', 'is', null);
+    if (error) { ui.alert(error.message, { title: 'Could not delete events' }); return; }
+    ui.toast('All events deleted.');
+    load();
+  });
+
   async function fetchEvents(gridStart, gridEnd) {
     const { data, error } = await sb
       .from('events')

@@ -1036,8 +1036,16 @@ button.brand { cursor: pointer; border-radius: var(--radius-sm); }
   .cl-toggle[aria-expanded="true"] svg { transform: rotate(45deg); }
 }
 
+.scan-loading { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: var(--color-surface); animation: fade-in 120ms linear both; }
+.scan-loading[hidden] { display: none; }
+.scan-loading-inner { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+.scan-spinner { width: 44px; height: 44px; border-radius: 50%; border: 4px solid var(--color-outline-variant); border-top-color: var(--color-primary); animation: scan-spin 800ms linear infinite; }
+.scan-loading-text { font: var(--type-headline); color: var(--color-on-surface); letter-spacing: 0.02em; }
+@keyframes scan-spin { to { transform: rotate(360deg); } }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .scan-spinner { animation-duration: 2400ms; }
   .ring-arc, .cl-ring-svg .ring-arc, .progress-fill { transition: none; }
 }
 

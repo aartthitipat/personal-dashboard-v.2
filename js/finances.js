@@ -72,7 +72,10 @@ const Finances = (() => {
 
   document.getElementById('slip-category').innerHTML = CATEGORIES.map((c) => `<option value="${c}">${c}</option>`).join('');
 
+  const scanLoading = document.getElementById('scan-loading');
+
   function setScanBusy(busy) {
+    scanLoading.hidden = !busy;
     scanBtn.disabled = busy;
     scanBtn.innerHTML = `${SCAN_ICON}${busy ? 'Scanning…' : 'Scan Slip'}`;
   }

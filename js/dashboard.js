@@ -10,7 +10,6 @@ const Dashboard = (() => {
   const isMobile = () => mobileQuery.matches;
 
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const EVENT_COLOR = {
     session: 'var(--color-primary)',
     exam: 'var(--color-tertiary)',
@@ -197,12 +196,8 @@ const Dashboard = (() => {
     statsEl.appendChild(ledgerRow(`Income, ${range}d`, App.currency(inc), periodTrend(inc, prevInc, true, prevLabel)));
     statsEl.appendChild(ledgerRow(`Expenses, ${range}d`, App.currency(exp), periodTrend(exp, prevExp, false, prevLabel)));
 
-    const sums = Array(7).fill(0);
-    const counts = Array(7).fill(0);
-    rows.forEach((r) => { sums[r.weekday] += r.expense; counts[r.weekday] += 1; });
-    const weekdayAvg = sums.map((v, i) => (counts[i] ? v / counts[i] : 0));
     const avgRow = ledgerRow('Avg daily spend', App.currency(exp / range));
-    Charts.miniBars(avgRow, weekdayAvg, WEEKDAYS, App.currency);
+    Charts.miniBars(avgRow, rows.map((r) => r.expense), rows.map((r) => r.label), App.currency);
     statsEl.appendChild(avgRow);
 
     if (goal && Number(goal.target_amount) > 0) {

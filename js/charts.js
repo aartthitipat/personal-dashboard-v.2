@@ -199,8 +199,10 @@ const Charts = (() => {
     const plotH = base - top;
     const max = Math.max(...values);
     const hi = max > 0 ? values.indexOf(max) : -1;
-    const slot = W / values.length, bw = 20;
-    const summary = `Average spend by weekday: ${labels.map((d, i) => `${d} ${money(values[i])}`).join(', ')}.${hi >= 0 ? ` Highest on ${labels[hi]}.` : ''}`;
+    const slot = W / values.length;
+    const bw = Math.min(20, Math.max(4, slot * 0.6));
+    const step = Math.ceil(values.length / 6);
+    const summary = `Spend by day: ${labels.map((d, i) => `${d} ${money(values[i])}`).join(', ')}.${hi >= 0 ? ` Highest on ${labels[hi]}.` : ''}`;
     const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': summary });
     svg.appendChild(el('line', { class: 'chart-zero', x1: 0, x2: W, y1: base, y2: base }));
     values.forEach((v, i) => {
@@ -210,11 +212,15 @@ const Charts = (() => {
       g.appendChild(text('title', {}, `${labels[i]}: ${money(v)}`));
       const bar = el('rect', {
         class: `mini-bar${i === hi ? ' top' : ''}`,
-        x: cx - bw / 2, y: base - bh, width: bw, height: bh, rx: 2,
+        x: cx - bw / 2, y: base - bh, width: bw, height: bh, rx: Math.min(2, bw / 2),
       });
-      bar.style.setProperty('--i', i);
+      bar.style.setProperty('--i', Math.min(i, 14));
+      g.appendChild(el('rect', { class: 'chart-hit', x: cx - slot / 2, y: 0, width: slot, height: H }));
       g.appendChild(bar);
-      g.appendChild(text('text', { class: 'chart-tick', x: cx, y: H - 3, 'text-anchor': 'middle' }, labels[i]));
+      if ((values.length - 1 - i) % step === 0) {
+        const atEdge = cx + 18 > W;
+        g.appendChild(text('text', { class: 'chart-tick', x: atEdge ? W : cx, y: H - 3, 'text-anchor': atEdge ? 'end' : 'middle' }, labels[i]));
+      }
       svg.appendChild(g);
       if (i === hi) {
         const label = money(v);

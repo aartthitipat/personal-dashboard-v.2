@@ -93,8 +93,9 @@ const Finances = (() => {
     return { dataUrl, base64: dataUrl.split(',')[1] };
   }
 
-  function openSlipModal(slip, dataUrl) {
+  function openSlipModal(slip, dataUrl, uploadedAt) {
     slipForm.reset();
+    document.getElementById('slip-time').textContent = `Uploaded ${uploadedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}`;
     document.getElementById('slip-preview').src = dataUrl;
     document.getElementById('slip-amount').value = slip.amount;
     document.getElementById('slip-vendor').value = slip.vendor;
@@ -120,6 +121,7 @@ const Finances = (() => {
   };
 
   async function scanSlip(file) {
+    const uploadedAt = new Date();
     setScanBusy(true);
     try {
       const { dataUrl, base64 } = await downscaleImage(file);
@@ -128,7 +130,7 @@ const Finances = (() => {
       });
       if (error) throw error;
       if (!data.ok) return await ui.alert(SCAN_FAIL_MESSAGES[data.reason] || data.message, { title: 'Scan Slip' });
-      openSlipModal(data.slip, dataUrl);
+      openSlipModal(data.slip, dataUrl, uploadedAt);
     } catch (err) {
       await ui.alert(`Could not read that image. Try a JPEG/PNG photo of the slip. (${err.message})`, { title: 'Scan Slip' });
     } finally {

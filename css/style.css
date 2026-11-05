@@ -1041,12 +1041,31 @@ button.brand { cursor: pointer; border-radius: var(--radius-sm); }
   .cl-toggle[aria-expanded="true"] svg { transform: rotate(45deg); }
 }
 
-.scan-loading { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: var(--scrim); animation: fade-in 120ms linear both; }
+.scan-loading { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--scrim) 55%, transparent); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); animation: fade-in 120ms linear both; }
 .scan-loading[hidden] { display: none; }
-.scan-loading-inner { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); width: 180px; height: 180px; border: 1px solid var(--color-outline-variant); border-radius: var(--radius-md); background: var(--color-surface-container-lowest); box-shadow: var(--shadow-modal); }
+.scan-loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 124px;
+  height: 124px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.22));
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  box-shadow: 0 8px 32px rgba(11, 16, 32, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+}
+:root[data-theme="dark"] .scan-loading-inner {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
 .scan-spinner {
-  width: 50px;
-  padding: 8px;
+  width: 30px;
+  padding: 4px;
   aspect-ratio: 1;
   border-radius: 50%;
   background: var(--color-primary);
@@ -1057,7 +1076,8 @@ button.brand { cursor: pointer; border-radius: var(--radius-sm); }
   mask-composite: subtract;
   animation: scan-spin 1s infinite linear;
 }
-.scan-loading-text { font: var(--type-headline); color: var(--color-on-surface); letter-spacing: 0.02em; }
+.scan-loading-text { font: var(--type-caption); font-weight: 500; color: var(--color-on-surface); letter-spacing: 0.04em; }
+.slip-time { margin: 0 0 var(--space-2); font: var(--type-caption); color: var(--color-on-surface-variant); font-variant-numeric: tabular-nums; }
 @keyframes scan-spin { to { transform: rotate(360deg); } }
 
 @media (prefers-reduced-motion: reduce) {
